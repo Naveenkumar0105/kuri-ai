@@ -52,13 +52,13 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
 
     return (
         <form onSubmit={handleSubmit} className="relative w-full mb-0">
-            <div className="relative flex items-center">
+            <div className="relative flex items-center bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-gray-100 dark:border-neutral-800 transition-all hover:shadow-md hover:border-gray-200 dark:hover:border-neutral-700">
                 <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Add a new task..."
-                    className="w-full px-6 py-4 text-lg bg-transparent border-none focus:ring-0 placeholder:text-gray-400 text-gray-900 dark:text-gray-100 pr-32"
+                    className="w-full px-6 py-4 text-lg bg-transparent border-none focus:ring-0 placeholder:text-gray-400 text-gray-900 dark:text-gray-100 pr-32 rounded-2xl"
                     disabled={isProcessing}
                 />
 
@@ -67,7 +67,7 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
                         type="button"
                         onClick={isListening ? stopListening : startListening}
                         className={cn(
-                            "p-2 rounded-full transition-all hover:bg-gray-100 dark:hover:bg-gray-700",
+                            "p-2 rounded-full transition-all hover:bg-gray-100 dark:hover:bg-gray-800",
                             isListening && "text-red-500 animate-pulse bg-red-50 dark:bg-red-900/20"
                         )}
                         disabled={isProcessing}

@@ -120,6 +120,82 @@ export function Sidebar({ selectedCategory, onSelectCategory, tasks, isMobileMen
                     Completed
                 </button>
             </nav>
+
+            <div className="mt-auto pt-4">
+                <UserProfile />
+            </div>
         </aside>
+    );
+}
+
+import { useSession, signOut } from "next-auth/react";
+import { useState, useRef, useEffect } from "react";
+import { LogOut, ChevronUp } from "lucide-react";
+
+function UserProfile() {
+    const { data: session } = useSession();
+    const [isOpen, setIsOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    if (!session?.user) return null;
+
+    const initials = session.user.name
+        ? session.user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+        : session.user.email?.[0].toUpperCase() || "U";
+
+    return (
+        <div className="relative" ref={menuRef}>
+            {isOpen && (
+                <div className="absolute bottom-full left-0 w-full mb-3 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-gray-100 dark:border-neutral-800 p-2 z-50 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-neutral-800 mb-1">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                            {session.user.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {session.user.email}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => signOut()}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                    </button>
+                </div>
+            )}
+
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={cn(
+                    "w-full flex items-center gap-3 p-2 rounded-xl transition-all duration-200 group",
+                    isOpen ? "bg-gray-100 dark:bg-neutral-800" : "hover:bg-white dark:hover:bg-neutral-800/50 shadow-sm border border-gray-100 dark:border-neutral-800"
+                )}
+            >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs shadow-inner ring-2 ring-white dark:ring-neutral-900">
+                    {initials}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                        {session.user.name?.split(' ')[0] || "User"}
+                    </p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors">
+                        View Account
+                    </p>
+                </div>
+                <ChevronUp className={cn("w-4 h-4 text-gray-400 transition-transform duration-200", isOpen && "rotate-180")} />
+            </button>
+        </div>
     );
 }
