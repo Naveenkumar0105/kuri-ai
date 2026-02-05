@@ -172,9 +172,28 @@ export function TaskDetailsModal({
                         </div>
 
                         {/* Created Date */}
-                        <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                            <Calendar className="w-4 h-4" />
-                            <span>Created on {new Date(editedTask.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <Calendar className="w-4 h-4" />
+                                <span>Created on {new Date(editedTask.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
+
+                            <button
+                                onClick={async () => {
+                                    const res = await fetch(`/api/tasks/${editedTask.id}/sync-calendar`, { method: "POST" });
+                                    if (res.ok) {
+                                        alert("Successfully added to Google Calendar!");
+                                    } else {
+                                        const data = await res.json();
+                                        alert(data.error || "Failed to sync.");
+                                    }
+                                }}
+                                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                                title="Add to Google Calendar"
+                            >
+                                <Calendar className="w-4 h-4" />
+                                Add to Calendar
+                            </button>
                         </div>
                     </div>
 
