@@ -11,12 +11,9 @@ export async function POST(req: Request) {
     const { userLocalTime } = body;
 
     const localDate = userLocalTime ? new Date(userLocalTime) : new Date();
-    const currentYear = localDate.getFullYear();
-    const currentMonth = localDate.getMonth() + 1;
-    const currentDay = localDate.getDate();
-    const currentHour = localDate.getHours();
-    const currentMinute = localDate.getMinutes();
-    const currentWeekday = localDate.toLocaleDateString('en-US', { weekday: 'long' });
+    // We pass the raw string to the LLM so it can handle the Timezone Offset correctly.
+    // relying on localDate.getHours() on the server would use the Server's Timezone (UTC on Vercel),
+    // which would cause the LLM to think it's a different time than it really is for the user.
 
     if (!process.env.GEMINI_API_KEY) {
       // Fallback for demo purposes if no key is provided
@@ -29,14 +26,10 @@ export async function POST(req: Request) {
     const prompt = `
       You are an advanced AI task manager. Your goal is to process user input into structured tasks.
       
-      **CURRENT CONTEXT (User's Local Time)**:
-      - Full String: ${userLocalTime || new Date().toString()}
-      - Year: ${currentYear}
-      - Month: ${currentMonth}
-      - Day: ${currentDay}
-      - Time: ${currentHour}:${currentMinute}
-      - Weekday: ${currentWeekday}
-      - Analyze the input relative to this local time.
+      **CURRENT USER CONTEXT**:
+      - User's Local Time String: "${userLocalTime || new Date().toString()}"
+      - Please use the above string to determine the current Year, Month, Day, Time, and Weekday relative to the user.
+      - IMPORTANT: The user's time string likely contains a Timezone Offset (e.g. GMT-0800). Respect this offset.
 
       **TASK**:
       1. **Check for Multiple Actions**: If the input contains multiple distinct actions (e.g., "buy apple and mango"), return them in the "tasks" array.
@@ -51,7 +44,8 @@ export async function POST(req: Request) {
       3. **NEW**: Extract any date and time mentioned in the input.
          - Use the "Current Context" above as the anchor.
          - Calculate the absolute ISO 8601 string for that date/time.
-         - Example: If Context is "Day: 24, Time: 11:25" and input is "Meeting at 2pm", the dueDate should be "${currentYear}-${currentMonth}-${currentDay}T14:00:00.000" (formatted as ISO).
+         - Example: If Context Time is "11:00" and input is "Meeting in 3 hours", the dueDate should be calculated as 14:00 of that day.
+         - Always return the absolute ISO 8601 string (e.g., "2024-02-24T14:00:00.000").
          - Return this ISO string in "dueDate". If no date is mentioned, set "dueDate" to null.
          - **NEW**: Classify the type of date in "dateType":
            - "due": if the task implies a deadline (e.g., "by", "before", "deadline", "due", "finish").
