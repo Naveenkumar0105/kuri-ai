@@ -28,25 +28,23 @@ export async function POST(req: Request) {
       
       **CURRENT USER CONTEXT**:
       - User's Local Time String: "${userLocalTime || new Date().toString()}"
-      - Please use the above string to determine the current Year, Month, Day, Time, and Weekday relative to the user.
-      - IMPORTANT: The user's time string likely contains a Timezone Offset (e.g. GMT-0800). Respect this offset.
+      - Please use the above string to determine the current Year, Month, Day, Time, Weekday, AND **Timezone Offset** (e.g. -08:00, +05:30).
 
       **TASK**:
       1. **Check for Multiple Actions**: If the input contains multiple distinct actions (e.g., "buy apple and mango"), return them in the "tasks" array.
-      2. **Check for Complexity (Decomposition)**: If the input is a SINGLE task but is broad/complex (e.g., "Plan a wedding", "Build a house", "Organize party"), you MUST decompose it.
-         - Return the original task in "tasks" (optional, usually skipped if decomposing).
-         - **CRITICAL**: Return 3-10 subtasks in the "decomposition" array.
-         - *Example*: Input "Plan a wedding" -> decomposition: [{"text": "Book venue", ...}, {"text": "Send invites", ...}]
-         - **NEW CATEGORIZATION RULE FOR DECOMPOSITION**:
-           - Identify a specific **Project Name** from the input (e.g., "Plan a wedding" -> "Wedding", "Build a house" -> "House Build").
-           - Assign this Project Name as the category for **ALL** decomposed subtasks.
-           - Do NOT use generic categories like "Personal" or "Finance" for these subtasks. Group them under the Project Name.
-      3. **NEW**: Extract any date and time mentioned in the input.
-         - Use the "Current Context" above as the anchor.
-         - Calculate the absolute ISO 8601 string for that date/time.
-         - Example: If Context Time is "11:00" and input is "Meeting in 3 hours", the dueDate should be calculated as 14:00 of that day.
-         - Always return the absolute ISO 8601 string (e.g., "2024-02-24T14:00:00.000").
-         - Return this ISO string in "dueDate". If no date is mentioned, set "dueDate" to null.
+      2. **Check for Complexity (Decomposition)**: If the input is a SINGLE task but is broad/complex (e.g., "Plan a wedding"), decompose it.
+         - Return 3-10 subtasks in "decomposition".
+         - Assign a Project Name category.
+      3. **NEW (CRITICAL)**: Extract date/time and formatted as **ISO 8601 WITH OFFSET**.
+         - Use the "Current User Context" to find the Timezone Offset.
+         - Calculate the target date/time based on the input.
+         - Combine them into a full ISO string WITH the offset.
+         - **Example**:
+           - User Context: "Mon Feb 16 2026 19:00:00 GMT-0800 (Pacific Standard Time)"
+           - Input: "Dinner at 8pm"
+           - Result: "2026-02-16T20:00:00-08:00" (Note the -08:00 at the end).
+         - Do NOT return a 'Z' (UTC) unless the user is actually in UTC.
+         - Return this string in "dueDate".
          - **NEW**: Classify the type of date in "dateType":
            - "due": if the task implies a deadline (e.g., "by", "before", "deadline", "due", "finish").
            - "scheduled": if the task implies a specific event time (e.g., "at", "on", "meeting", "appointment").
