@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { text, category, priority, description, dueDate, dateType } = body;
+        const { text, category, priority, description, dueDate, dateType, parentId } = body;
 
         const task = await prisma.task.create({
             data: {
@@ -40,6 +40,7 @@ export async function POST(req: Request) {
                 description,
                 dueDate: dueDate ? new Date(dueDate) : null,
                 dateType,
+                parentId: parentId || null,
                 userId: session.user.id,
             },
         });
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
             // For Vercel, await is safer to ensure it finishes before lambda freezes.
             const { addToGoogleCalendar } = await import("@/lib/calendar");
             await addToGoogleCalendar(
+                session.user.id,
                 task.text,
                 task.description || "Created via Kuri AI",
                 task.dueDate.toISOString()

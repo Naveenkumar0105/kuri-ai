@@ -33,6 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
 
         const result = await addToGoogleCalendar(
+            session.user.id,
             task.text,
             task.description || "Synced from Kuri AI",
             startTimeString,

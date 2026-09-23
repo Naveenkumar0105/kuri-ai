@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Mic, Send, Loader2 } from "lucide-react";
+import { Mic, Send, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { ThinkingOrb } from "thinking-orbs";
 
 interface TaskInputProps {
-    onAddTask: (text: string) => Promise<void>;
+    onAddTask: (text: string, useAI: boolean) => Promise<boolean | void>;
     isProcessing: boolean;
 }
 
@@ -28,7 +28,6 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
             recognitionRef.current!.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 setInput(transcript);
-                // Optional: Auto-submit on voice end? Maybe better to let user confirm.
             };
 
             recognitionRef.current!.start();
@@ -46,46 +45,74 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isProcessing) return;
-        await onAddTask(input);
-        setInput("");
+        const success = await onAddTask(input, false);
+        if (success !== false) setInput("");
+    };
+
+    const handleAIAssist = async () => {
+        if (!input.trim() || isProcessing) return;
+        const success = await onAddTask(input, true);
+        if (success !== false) setInput("");
     };
 
     return (
-        <form onSubmit={handleSubmit} className="relative w-full mb-0">
-            <div className="relative flex items-center bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-gray-100 dark:border-neutral-800 transition-all hover:shadow-md hover:border-gray-200 dark:hover:border-neutral-700">
+        <form onSubmit={handleSubmit} className="relative w-full">
+            <div className="relative flex items-center bg-card rounded-xl border border-border transition-all focus-within:ring-2 focus-within:ring-[#5E5CE6]/30 focus-within:border-[#5E5CE6]/40 shadow-sm overflow-hidden">
                 <input
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Add a new task..."
-                    className="w-full px-6 py-4 text-lg bg-transparent border-none focus:ring-0 placeholder:text-gray-400 text-gray-900 dark:text-gray-100 pr-32 rounded-2xl"
-                    disabled={isProcessing}
+                    placeholder="Add a new task…"
+                    className={cn(
+                        "w-full px-4 py-3 text-[15px] bg-transparent border-none focus:ring-0 placeholder:text-muted-foreground text-foreground pr-36 rounded-xl transition-colors",
+                        isProcessing && "text-muted-foreground"
+                    )}
+                    readOnly={isProcessing}
                 />
 
-                <div className="absolute right-2 flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={isListening ? stopListening : startListening}
-                        className={cn(
-                            "p-2 rounded-full transition-all hover:bg-gray-100 dark:hover:bg-gray-800",
-                            isListening && "text-red-500 animate-pulse bg-red-50 dark:bg-red-900/20"
-                        )}
-                        disabled={isProcessing}
-                    >
-                        <Mic className="w-5 h-5" />
-                    </button>
+                <div className="absolute right-2 flex items-center gap-1">
+                    {isProcessing ? (
+                        <div className="flex items-center justify-center pr-3 animate-in fade-in zoom-in duration-200">
+                            <ThinkingOrb state="working" size={20} speed={1.85} />
+                        </div>
+                    ) : (
+                        <>
+                            <button
+                                type="button"
+                                onClick={isListening ? stopListening : startListening}
+                                className={cn(
+                                    "p-2 text-muted-foreground hover:text-foreground rounded-lg transition-colors hover:bg-secondary",
+                                    isListening && "text-red-500 animate-pulse bg-red-50 dark:bg-red-900/20"
+                                )}
+                                disabled={isProcessing}
+                                title="Voice Input"
+                                aria-label="Voice Input"
+                            >
+                                <Mic className="w-4 h-4" />
+                            </button>
 
-                    <button
-                        type="submit"
-                        disabled={!input.trim() || isProcessing}
-                        className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
-                    >
-                        {isProcessing ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Send className="w-5 h-5" />
-                        )}
-                    </button>
+                            <button
+                                type="button"
+                                onClick={handleAIAssist}
+                                disabled={!input.trim() || isProcessing}
+                                title="Organize with AI"
+                                aria-label="Organize with AI"
+                                className="p-2 text-[#5E5CE6] dark:text-[#7C7AE8] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors disabled:opacity-40"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={!input.trim() || isProcessing}
+                                className="p-2 mr-1 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg disabled:opacity-40 transition-colors"
+                                title="Quick Add (Enter)"
+                                aria-label="Add task"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </form>

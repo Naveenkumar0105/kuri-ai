@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       - Please use the above string to determine the current Year, Month, Day, Time, Weekday, AND **Timezone Offset** (e.g. -08:00, +05:30).
 
       **TASK**:
-      1. **Check for Multiple Actions**: If the input contains multiple distinct actions (e.g., "buy apple and mango"), return them in the "tasks" array.
+      1. **Check for Multiple Actions**: If the input contains multiple distinct actions (e.g., "buy apple and mango"), return them as SEPARATE items in the "tasks" array. Do NOT include the original combined string.
       2. **Check for Complexity (Decomposition)**: If the input is a SINGLE task but is broad/complex (e.g., "Plan a wedding"), decompose it.
          - Return 3-10 subtasks in "decomposition".
          - Assign a Project Name category.

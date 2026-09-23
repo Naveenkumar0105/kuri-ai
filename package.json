@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "npx prisma generate && npx prisma db push --accept-data-loss && next build --webpack",
     "start": "next start",
     "lint": "eslint"
@@ -27,6 +27,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "tailwind-merge": "^3.4.0",
+    "thinking-orbs": "^0.3.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

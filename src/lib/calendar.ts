@@ -1,51 +1,75 @@
 import { google } from "googleapis";
+import { prisma } from "@/lib/prisma";
 
 export async function addToGoogleCalendar(
+    userId: string,
     title: string,
     description: string,
     startTime: string,
     timeZone: string = "UTC",
     isAllDay: boolean = false
 ) {
-    // 1. Check for Service Account Credentials
-    const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const calendarId = process.env.GOOGLE_CALENDAR_ID; // e.g., 'primary' or a specific ID
+    // 1. Fetch user's Google Account from Prisma
+    const account = await prisma.account.findFirst({
+        where: {
+            userId: userId,
+            provider: "google",
+        },
+    });
 
-    if (!key || !email || !calendarId) {
-        throw new Error("Missing Google Calendar Credentials. Please check GOOGLE_SERVICE_ACCOUNT_KEY in settings.");
+    if (!account || !account.access_token || !account.refresh_token) {
+        throw new Error("Google Calendar is not linked. Please sign in with Google.");
     }
 
     try {
-        // 2. Authenticate
-        const auth = new google.auth.JWT({
-            email,
-            key: key.replace(/\\n/g, "\n"),
-            scopes: ["https://www.googleapis.com/auth/calendar"]
+        // 2. Initialize OAuth2 Client
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET
+        );
+
+        // Set the credentials
+        oauth2Client.setCredentials({
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            expiry_date: account.expires_at ? account.expires_at * 1000 : null,
         });
 
-        const calendar = google.calendar({ version: "v3", auth });
+        // Optional: Listen for token refresh and update DB
+        oauth2Client.on("tokens", async (tokens) => {
+            if (tokens.access_token) {
+                await prisma.account.update({
+                    where: { id: account.id },
+                    data: {
+                        access_token: tokens.access_token,
+                        refresh_token: tokens.refresh_token || account.refresh_token,
+                        expires_at: tokens.expiry_date ? Math.floor(tokens.expiry_date / 1000) : null,
+                    },
+                });
+            }
+        });
+
+        const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
         // 3. Create Event
-        let event: any = {
+        const event: any = {
             summary: title,
             description: description,
         };
 
         if (isAllDay) {
-            // For All Day, we use 'date' (YYYY-MM-DD) instead of 'dateTime'
             const dateStr = startTime.split('T')[0];
             event.start = { date: dateStr };
-            event.end = { date: dateStr }; // Google treats same start/end date as 1 day
+            event.end = { date: dateStr };
         } else {
             const startDateTime = new Date(startTime);
-            const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // Default duration: 1 hour
+            const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1 hour duration
             event.start = { dateTime: startDateTime.toISOString(), timeZone };
             event.end = { dateTime: endDateTime.toISOString(), timeZone };
         }
 
         const response = await calendar.events.insert({
-            calendarId: calendarId,
+            calendarId: "primary", // Uses the authenticated user's primary calendar
             requestBody: event,
         });
 

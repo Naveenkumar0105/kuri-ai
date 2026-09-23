@@ -12,4 +12,6 @@ export interface Task {
     // Actually, API returns JSON, so dates are strings.
     dateType?: string | null; // 'due' | 'scheduled'
     userId?: string;
+    parentId?: string | null;
+    subtasks?: Task[];
 }

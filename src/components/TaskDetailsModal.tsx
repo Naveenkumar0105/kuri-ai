@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Task, Category } from "@/types";
-import { X, Calendar, Flag, Tag, AlignLeft, Save } from "lucide-react";
+import { X, Calendar, Flag, Tag, AlignLeft, Save, ChevronDown, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +24,15 @@ export function TaskDetailsModal({
     const [editedTask, setEditedTask] = useState<Task | null>(null);
     const [newCategory, setNewCategory] = useState("");
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         setEditedTask(task);
         setNewCategory("");
         setIsCreatingCategory(false);
+        setIsDropdownOpen(false);
+        setSearchQuery("");
     }, [task]);
 
     if (!isOpen || !editedTask) return null;
@@ -47,20 +51,31 @@ export function TaskDetailsModal({
     ];
 
     // Ensure unique categories and exclude "All"
-    const uniqueCategories = Array.from(new Set(categories)).filter(c => c !== "All");
+    
+    const MAIN_CATEGORIES = ["Work", "Personal", "Shopping", "Health"];
+    // Ensure unique categories, exclude "All", include the task's current category, and "Uncategorized"
+    const allCategories = Array.from(new Set([...categories, editedTask?.category || "Uncategorized", "Uncategorized"])).filter(c => c !== "All" && c !== "All Tasks");
+    
+    // Sort: Main categories first (in specific order or alphabetical), then user categories alphabetically
+    const uniqueCategories = [
+        "Uncategorized",
+        ...MAIN_CATEGORIES.filter(c => allCategories.includes(c)),
+        ...allCategories.filter(c => c !== "Uncategorized" && !MAIN_CATEGORIES.includes(c)).sort((a, b) => a.localeCompare(b))
+    ];
+
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 dark:bg-black/40 backdrop-blur-md">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh]"
+                    className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh]"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Task Details</h2>
+                        <h2 className="text-[17px] font-semibold tracking-tight text-gray-900 dark:text-white">Task Details</h2>
                         <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
@@ -86,24 +101,7 @@ export function TaskDetailsModal({
                                 <Tag className="w-3 h-3" /> Category
                             </label>
                             <div className="relative">
-                                {!isCreatingCategory ? (
-                                    <select
-                                        value={editedTask.category}
-                                        onChange={(e) => {
-                                            if (e.target.value === "NEW_CATEGORY_OPTION") {
-                                                setIsCreatingCategory(true);
-                                            } else {
-                                                setEditedTask({ ...editedTask, category: e.target.value });
-                                            }
-                                        }}
-                                        className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white appearance-none"
-                                    >
-                                        {uniqueCategories.map((cat) => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                        <option value="NEW_CATEGORY_OPTION">+ Create New Category</option>
-                                    </select>
-                                ) : (
+                                {isCreatingCategory ? (
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -111,25 +109,96 @@ export function TaskDetailsModal({
                                             onChange={(e) => setNewCategory(e.target.value)}
                                             placeholder="Enter new category name"
                                             autoFocus
-                                            className="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white"
+                                            className="flex-1 p-3 bg-secondary rounded-xl border-none focus:ring-2 focus:ring-[#0A84FF] text-foreground"
                                         />
                                         <button
                                             onClick={() => {
                                                 if (newCategory.trim()) {
-                                                    setEditedTask({ ...editedTask, category: newCategory.trim() });
+                                                    const n = newCategory.trim();
+                                                    const normalized = n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+                                                    setEditedTask({ ...editedTask, category: normalized });
                                                     setIsCreatingCategory(false);
                                                 }
                                             }}
-                                            className="px-4 py-2 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700"
+                                            className="px-4 py-2 bg-[#5E5CE6] text-white rounded-xl font-medium hover:bg-[#5E5CE6]/90"
                                         >
                                             Add
                                         </button>
                                         <button
                                             onClick={() => setIsCreatingCategory(false)}
-                                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                                            className="px-4 py-2 bg-secondary text-muted-foreground rounded-xl font-medium hover:text-foreground"
                                         >
                                             Cancel
                                         </button>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                            className="w-full flex items-center justify-between p-3 bg-secondary rounded-xl text-foreground text-left focus:ring-2 focus:ring-[#0A84FF] focus:outline-none"
+                                        >
+                                            <span className="truncate">{editedTask.category || "Uncategorized"}</span>
+                                            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", isDropdownOpen && "rotate-180")} />
+                                        </button>
+                                        
+                                        <AnimatePresence>
+                                            {isDropdownOpen && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute z-10 w-full mt-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col max-h-64"
+                                                >
+                                                    <div className="p-2 border-b border-border flex items-center gap-2">
+                                                        <Search className="w-4 h-4 text-muted-foreground" />
+                                                        <input 
+                                                            type="text" 
+                                                            autoFocus
+                                                            placeholder="Search categories..."
+                                                            value={searchQuery}
+                                                            onChange={e => setSearchQuery(e.target.value)}
+                                                            className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 p-1"
+                                                        />
+                                                    </div>
+                                                    <div className="overflow-y-auto p-1.5 flex-1">
+                                                        {uniqueCategories
+                                                            .filter(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
+                                                            .map(cat => (
+                                                                <button
+                                                                    key={cat}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setEditedTask({ ...editedTask, category: cat });
+                                                                        setIsDropdownOpen(false);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                                                                        editedTask.category === cat ? "bg-[#5E5CE6]/10 text-[#5E5CE6] font-medium" : "text-foreground hover:bg-secondary"
+                                                                    )}
+                                                                >
+                                                                    {cat}
+                                                                </button>
+                                                            ))}
+                                                        {uniqueCategories.filter(c => c.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                                            <p className="text-center text-sm text-muted-foreground py-3">No categories found</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="p-1.5 border-t border-border">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsDropdownOpen(false);
+                                                                setIsCreatingCategory(true);
+                                                            }}
+                                                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-[#5E5CE6] hover:bg-[#5E5CE6]/10 transition-colors"
+                                                        >
+                                                            + Create New Category
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 )}
                             </div>
@@ -166,7 +235,7 @@ export function TaskDetailsModal({
                             <textarea
                                 value={editedTask.description || ""}
                                 onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
-                                className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border-none focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white min-h-[120px] resize-none"
+                                className="w-full p-4 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-xl border-none focus:ring-2 focus:ring-[#0A84FF] focus:ring-opacity-50 text-gray-900 dark:text-white min-h-[120px] resize-none"
                                 placeholder="Add more details about this task..."
                             />
                         </div>
@@ -207,7 +276,7 @@ export function TaskDetailsModal({
                         </button>
                         <button
                             onClick={handleSave}
-                            className="px-5 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors shadow-lg shadow-purple-500/20 flex items-center gap-2"
+                            className="px-5 py-2.5 text-sm font-medium text-white bg-[#0A84FF] hover:bg-[#007AFF] active:scale-[0.98] rounded-xl transition-colors shadow-lg shadow-purple-500/20 flex items-center gap-2"
                         >
                             <Save className="w-4 h-4" />
                             Save Changes

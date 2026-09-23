@@ -1,56 +1,310 @@
 "use client";
 
 import { Task, Category } from "@/types";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Trash2, Calendar, Tag, RotateCcw } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Check, Flag, Trash2, Calendar, Tag, RotateCcw, ChevronRight, ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 interface TaskListProps {
     tasks: Task[];
     onToggleTask: (id: string) => void;
     onDeleteTask: (id: string) => void;
     onTaskClick: (task: Task) => void;
-    selectedCategory: Category | "All";
+    selectedCategory: Category | "All Tasks";
+    suggestOrganizeTaskIds: Set<string>;
+    onOrganizeTask: (task: Task) => void;
 }
 
-const CATEGORY_COLORS: Record<Category, string> = {
-    Work: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    Personal: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    Shopping: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-    Health: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-    Uncategorized: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+interface TaskItemProps {
+    task: Task;
+    isSubtask?: boolean;
+    showCategory?: boolean;
+    getSubtasks: (parentId: string) => Task[];
+    onToggleTask: (id: string) => void;
+    onDeleteTask: (id: string) => void;
+    onTaskClick: (task: Task) => void;
+    suggestOrganize?: boolean;
+    onOrganizeTask?: (task: Task) => void;
+}
+
+const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, onToggleTask, onDeleteTask, onTaskClick, suggestOrganize, onOrganizeTask }: TaskItemProps) => {
+    const subtasks = getSubtasks(task.id);
+    const [isExpanded, setIsExpanded] = useState(true);
+    const [visualCompleted, setVisualCompleted] = useState(task.completed);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const prefersReducedMotion = useReducedMotion();
+    const duration = prefersReducedMotion ? 0 : 0.3;
+
+    useEffect(() => {
+        if (!isTransitioning) {
+            setVisualCompleted(task.completed);
+        }
+    }, [task.completed, isTransitioning]);
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isTransitioning) return;
+
+        setIsTransitioning(true);
+        const newCompleted = !visualCompleted;
+        setVisualCompleted(newCompleted);
+
+        setTimeout(() => {
+            onToggleTask(task.id);
+            setTimeout(() => setIsTransitioning(false), 50);
+        }, prefersReducedMotion ? 0 : 300);
+    };
+
+    /* Format a due date as a single, human-readable string */
+    const formatDueDate = (date: Date): string => {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const isToday = date.toDateString() === now.toDateString();
+        const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+        const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+        if (isToday) return `Today, ${timeStr}`;
+        if (isTomorrow) return `Tomorrow, ${timeStr}`;
+        return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    };
+
+    const isOverdue = task.dueDate && task.dateType === 'due' && new Date(task.dueDate) < new Date() && !task.completed;
+
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+            className={cn(
+                "group relative flex flex-col rounded-lg transition-colors",
+                "hover:bg-secondary/60 dark:hover:bg-secondary/40",
+                !isSubtask && "border-b border-border/60 last:border-b-0",
+                isSubtask && "ml-7",
+                visualCompleted && "opacity-70"
+            )}
+        >
+            <div className={cn("flex items-start gap-3 px-3", isSubtask ? "py-2" : "py-2.5")}>
+            {/* Checkbox — 44px touch target wrapping a 20px visual circle */}
+            <button
+                onClick={handleToggle}
+                disabled={isTransitioning}
+                className={cn(
+                    "flex-shrink-0 w-[44px] h-[44px] -m-3 flex items-center justify-center",
+                    isTransitioning && "cursor-default"
+                )}
+                aria-label={visualCompleted ? "Mark as incomplete" : "Mark as complete"}
+            >
+                <div className={cn(
+                    "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-200",
+                    visualCompleted
+                        ? "bg-[#5E5CE6] border-[#5E5CE6] text-white"
+                        : "border-border dark:border-[#48484A] hover:border-[#5E5CE6]"
+                )}>
+                    <AnimatePresence>
+                        {visualCompleted && (
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                transition={{ duration: prefersReducedMotion ? 0 : 0.15, type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                                <Check className="w-3 h-3" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </button>
+
+            {/* Task content */}
+            <div
+                className="flex-1 min-w-0 cursor-pointer pt-0.5"
+                onClick={() => onTaskClick(task)}
+            >
+                <div className="flex items-center gap-2">
+                    {subtasks.length > 0 && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                            className="p-0.5 hover:bg-secondary rounded transition-colors text-muted-foreground"
+                            aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                        >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+                    )}
+                    <div className="relative flex-1 min-w-0">
+                        <p className={cn(
+                            "text-[15px] leading-snug font-medium truncate transition-colors duration-200",
+                            visualCompleted ? "text-muted-foreground" : "text-foreground"
+                        )}>
+                            {task.text}
+                        </p>
+                        {visualCompleted && (
+                            <motion.div
+                                initial={false}
+                                animate={{ width: "100%" }}
+                                transition={{ duration }}
+                                className="absolute left-0 top-1/2 h-[1px] bg-muted-foreground/50 origin-left"
+                                style={{ marginTop: "-0.5px" }}
+                            />
+                        )}
+                    </div>
+                </div>
+
+                {/* Metadata row — priority, due date, category (only when not grouped) */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[12px] font-medium text-muted-foreground">
+                    {subtasks.length > 0 && (
+                        <span className="flex items-center gap-1 font-semibold text-[#5E5CE6]">
+                            {subtasks.filter(s => s.completed).length} of {subtasks.length} completed
+                        </span>
+                    )}
+                    {subtasks.length > 0 && (task.priority || task.dueDate || showCategory) && <span className="text-border">·</span>}
+                    {task.priority && (
+                        <span className={cn(
+                            "flex items-center gap-1",
+                            task.priority === 'High' ? "text-[#EF4444]" :
+                                task.priority === 'Medium' ? "text-[#F59E0B]" :
+                                    "text-[#5E5CE6]"
+                        )}>
+                            <Flag className="w-3 h-3" />
+                            {task.priority}
+                        </span>
+                    )}
+                    {task.priority && task.dueDate && <span className="text-border">·</span>}
+                    {task.dueDate && (
+                        <span className={cn(
+                            "flex items-center gap-1",
+                            isOverdue && "text-[#EF4444] font-semibold"
+                        )}>
+                            <Calendar className="w-3 h-3" />
+                            {formatDueDate(new Date(task.dueDate))}
+                        </span>
+                    )}
+                    {showCategory && !isSubtask && (
+                        <>
+                            {(task.priority || task.dueDate) && <span className="text-border">·</span>}
+                            <span className="flex items-center gap-1">
+                                <Tag className="w-3 h-3" />
+                                {task.category}
+                            </span>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Hover actions */}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+                {suggestOrganize && !task.completed && onOrganizeTask && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onOrganizeTask(task); }}
+                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors"
+                        title="Organize with AI"
+                        aria-label="Organize with AI"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                    </button>
+                )}
+                {task.completed && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onToggleTask(task.id); }}
+                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors"
+                        title="Undo"
+                        aria-label="Undo completion"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                    </button>
+                )}
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                    className="p-1.5 text-muted-foreground hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
+                    title="Delete"
+                    aria-label="Delete task"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+                {task.dueDate && !task.completed && (
+                    <a
+                        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(task.text)}&details=${encodeURIComponent(task.description || "")}&dates=${new Date(task.dueDate).toISOString().replace(/-|:|\.\d\d\d/g, "")}/${new Date(new Date(task.dueDate).getTime() + 60 * 60 * 1000).toISOString().replace(/-|:|\.\d\d\d/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors"
+                        title="Add to Google Calendar"
+                        aria-label="Add to Google Calendar"
+                    >
+                        <Calendar className="w-4 h-4" />
+                    </a>
+                )}
+            </div>
+
+            </div>
+
+            {/* Subtasks */}
+            {subtasks.length > 0 && isExpanded && (
+                <div className="flex flex-col w-full pb-2">
+                    {subtasks.map(subtask => (
+                        <TaskItem
+                            key={subtask.id}
+                            task={subtask}
+                            isSubtask={true}
+                            getSubtasks={getSubtasks}
+                            onToggleTask={onToggleTask}
+                            onDeleteTask={onDeleteTask}
+                            onTaskClick={onTaskClick}
+                        />
+                    ))}
+                </div>
+            )}
+        </motion.div>
+    );
 };
 
-export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory }: TaskListProps) {
-    // If a specific category is selected, we just show those tasks.
-    // If "All" is selected, we group them.
+export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory, suggestOrganizeTaskIds, onOrganizeTask }: TaskListProps) {
+    const rootTasks = tasks.filter(t => !t.parentId || !tasks.some(p => p.id === t.parentId));
+    const getSubtasks = (parentId: string) => tasks.filter(t => t.parentId === parentId);
 
-    const groupedTasks = selectedCategory === "All"
-        ? tasks.reduce((acc, task) => {
-            if (!acc[task.category]) acc[task.category] = [];
-            acc[task.category].push(task);
+    const isAllOrCompleted = selectedCategory === "All Tasks" || selectedCategory === "Completed";
+
+    /* When viewing a specific category, don't show category badges on rows */
+    const showCategoryOnRows = isAllOrCompleted;
+
+        const normalizeCategory = (cat: string) => {
+        const c = (cat || "Uncategorized").trim();
+        return c.charAt(0).toUpperCase() + c.slice(1).toLowerCase();
+    };
+
+    const groupedTasks = isAllOrCompleted
+        ? rootTasks.reduce((acc, task) => {
+            const cat = normalizeCategory(task.category);
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(task);
             return acc;
-        }, {} as Record<Category, Task[]>)
-        : { [selectedCategory]: tasks };
+        }, {} as Record<string, Task[]>)
+        : { [selectedCategory]: rootTasks.filter(t => normalizeCategory(t.category) === selectedCategory) };
 
-    // Ensure we have at least an empty array for the selected category if no tasks exist
-    if (selectedCategory !== "All" && !groupedTasks[selectedCategory]) {
+    if (isAllOrCompleted) {
+        // nothing extra needed
+    } else if (!groupedTasks[selectedCategory]) {
         groupedTasks[selectedCategory as Category] = [];
     }
 
-    const categoriesToShow = (selectedCategory === "All"
+    const categoriesToShow = (isAllOrCompleted
         ? Object.entries(groupedTasks)
         : [[selectedCategory, groupedTasks[selectedCategory as Category]]]) as [string, Task[]][];
 
     if (tasks.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                    <Tag className="w-8 h-8 text-gray-400" />
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
+                    <Tag className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No tasks found</h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                    {selectedCategory === "All"
+                <h3 className="text-base font-semibold text-foreground">No tasks found</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                    {selectedCategory === "All Tasks"
                         ? "Start by adding a new task above."
                         : `No tasks in ${selectedCategory}. Add one to get started!`}
                 </p>
@@ -59,135 +313,37 @@ export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selec
     }
 
     return (
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-6">
             {categoriesToShow.map(([category, categoryTasks]) => (
                 (categoryTasks as Task[]).length > 0 && (
                     <motion.div
                         key={category}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-4"
+                        transition={{ duration: 0.2 }}
                     >
-                        {selectedCategory === "All" && (
-                            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                                <span className={cn("px-3 py-1 rounded-full text-xs font-medium", CATEGORY_COLORS[category as Category])}>
-                                    {category}
-                                </span>
-                                <span className="text-sm text-gray-400 font-normal">({(categoryTasks as Task[]).length})</span>
+                        {/* Section heading — only when grouped by category */}
+                        {isAllOrCompleted && (
+                            <h3 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 px-3 mb-2">
+                                {category}
+                                <span className="font-normal">· {(categoryTasks as Task[]).length}</span>
                             </h3>
                         )}
 
-                        <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                        <div className="flex flex-col bg-card rounded-xl border border-border overflow-hidden">
                             <AnimatePresence mode="popLayout">
                                 {(categoryTasks as Task[]).map((task) => (
-                                    <motion.div
-                                        layout
+                                    <TaskItem
                                         key={task.id}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        className={cn(
-                                            "group relative p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700",
-                                            task.completed && "opacity-60 bg-gray-50 dark:bg-gray-900/50"
-                                        )}
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0 space-y-2">
-                                                <div className="flex items-start gap-3">
-                                                    <button
-                                                        onClick={() => onToggleTask(task.id)}
-                                                        className={cn(
-                                                            "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
-                                                            task.completed
-                                                                ? "bg-green-500 border-green-500 text-white"
-                                                                : "border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-500"
-                                                        )}
-                                                    >
-                                                        {task.completed && <Check className="w-3 h-3" />}
-                                                    </button>
-                                                    <div
-                                                        className="flex-1 min-w-0 cursor-pointer"
-                                                        onClick={() => onTaskClick(task)}
-                                                    >
-                                                        <p className={cn(
-                                                            "text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition-all duration-200",
-                                                            task.completed && "text-gray-400 dark:text-gray-500 line-through decoration-gray-400 dark:decoration-gray-500"
-                                                        )}>
-                                                            {task.text}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                                                <Tag className="w-3 h-3" />
-                                                                {task.category}
-                                                            </span>
-                                                            {task.priority && (
-                                                                <span className={cn(
-                                                                    "text-[10px] font-medium px-1.5 py-0.5 rounded-md flex items-center gap-1",
-                                                                    task.priority === 'High' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                                                                        task.priority === 'Medium' ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                                                                            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                                                )}>
-                                                                    {task.priority}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 pl-8">
-                                                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                        <Calendar className="w-3 h-3" />
-                                                        {new Date(task.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                        {task.dueDate && (
-                                                            <>
-                                                                <span className="mx-1">•</span>
-                                                                <span className={cn(
-                                                                    "font-medium",
-                                                                    task.dateType === 'due' ? "text-red-600 dark:text-red-400" : "text-purple-600 dark:text-purple-400"
-                                                                )}>
-                                                                    {task.dateType === 'due' ? "Due: " : "At: "}
-                                                                    {new Date(task.dueDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                                                                </span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    {task.completed && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                onToggleTask(task.id);
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                            title="Undo"
-                                                        >
-                                                            <RotateCcw className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onDeleteTask(task.id);
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                    {task.dueDate && !task.completed && (
-                                                        <a
-                                                            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(task.text)}&details=${encodeURIComponent(task.description || "")}&dates=${new Date(task.dueDate).toISOString().replace(/-|:|\.\d\d\d/g, "")}/${new Date(new Date(task.dueDate).getTime() + 60 * 60 * 1000).toISOString().replace(/-|:|\.\d\d\d/g, "")}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                                                            title="Add to Google Calendar"
-                                                        >
-                                                            <Calendar className="w-4 h-4" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
+                                        task={task}
+                                        showCategory={showCategoryOnRows}
+                                        getSubtasks={getSubtasks}
+                                        onToggleTask={onToggleTask}
+                                        onDeleteTask={onDeleteTask}
+                                        onTaskClick={onTaskClick}
+                                        suggestOrganize={suggestOrganizeTaskIds.has(task.id)}
+                                        onOrganizeTask={onOrganizeTask}
+                                    />
                                 ))}
                             </AnimatePresence>
                         </div>

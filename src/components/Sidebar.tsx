@@ -1,143 +1,141 @@
-import { Category, Task } from "@/types";
+"use client";
+import { Folder, Inbox, CheckSquare, Hash, LogOut, Settings, ChevronUp, User } from "lucide-react";
+import { Category } from "@/types";
 import { cn } from "@/lib/utils";
-import {
-    LayoutGrid,
-    Briefcase,
-    User,
-    ShoppingCart,
-    Heart,
-    HelpCircle,
-    CheckSquare,
-    Hash
-} from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { useState, useRef, useEffect } from "react";
 
 interface SidebarProps {
-    selectedCategory: Category | "All";
-    onSelectCategory: (category: Category | "All") => void;
-    tasks: Task[];
+    selectedCategory: Category | "All Tasks";
+    onSelectCategory: (category: Category | "All Tasks") => void;
     isMobileMenuOpen: boolean;
     setIsMobileMenuOpen: (isOpen: boolean) => void;
+    counts: Record<string, number>;
+    dynamicListCounts: Record<string, number>;
+    visibleLists: string[];
 }
 
-const DEFAULT_CATEGORIES: { id: Category | "All"; label: string; icon: React.ElementType }[] = [
-    { id: "All Tasks", label: "All Tasks", icon: LayoutGrid },
-    { id: "Work", label: "Work", icon: Briefcase },
-    { id: "Personal", label: "Personal", icon: User },
-    { id: "Shopping", label: "Shopping", icon: ShoppingCart },
-    { id: "Health", label: "Health", icon: Heart },
-];
+const NAV_SELECTED = "bg-card text-foreground shadow-sm border border-border";
+const NAV_DEFAULT = "text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent";
 
-export function Sidebar({ selectedCategory, onSelectCategory, tasks, isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
-    // Calculate dynamic categories from active tasks
-    const activeTasks = tasks.filter(t => !t.completed);
-    const dynamicCategories = Array.from(new Set(activeTasks.map(t => t.category)))
-        .filter(cat => !DEFAULT_CATEGORIES.some(dc => dc.id === cat) && cat !== "Uncategorized" && cat !== "Completed");
-
+export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, setIsMobileMenuOpen, counts, dynamicListCounts, visibleLists }: SidebarProps) {
     return (
-        <aside className="w-64 flex-shrink-0 hidden md:block border-r border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl h-screen sticky top-0 p-6">
-            <div className="mb-8 px-2">
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+        <aside className={cn(
+            "fixed inset-y-0 left-0 z-40 w-64 bg-secondary/50 dark:bg-[#18181A] border-r border-border flex flex-col transition-transform duration-300 md:relative md:translate-x-0",
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+            {/* Mobile overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/20 z-[-1] md:hidden"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            <div className="p-5 pb-3">
+                <h2 className="text-[15px] font-bold text-foreground tracking-tight flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-[6px] bg-[#5E5CE6] flex items-center justify-center shadow-sm">
+                        <CheckSquare className="w-3 h-3 text-white" />
+                    </div>
                     Kuri AI
                 </h2>
             </div>
 
-            <nav className="space-y-1">
-                {/* Default Categories */}
-                {DEFAULT_CATEGORIES.map((category) => {
-                    const Icon = category.icon;
-                    const isSelected = selectedCategory === category.id;
+            <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+                {/* All Tasks */}
+                <button
+                    onClick={() => { onSelectCategory("All Tasks"); setIsMobileMenuOpen(false); }}
+                    className={cn(
+                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200",
+                        selectedCategory === "All Tasks" ? NAV_SELECTED : NAV_DEFAULT
+                    )}
+                >
+                    <div className="flex items-center gap-2.5">
+                        <Inbox className={cn("w-4 h-4", selectedCategory === "All Tasks" ? "text-[#5E5CE6]" : "text-muted-foreground")} />
+                        All Tasks
+                    </div>
+                    <span className="text-[12px] tabular-nums font-semibold text-muted-foreground/70">{counts["All Tasks"] || 0}</span>
+                </button>
 
-                    return (
-                        <button
-                            key={category.id}
-                            onClick={() => onSelectCategory(category.id)}
-                            className={cn(
-                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                                isSelected
-                                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 shadow-sm"
-                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
-                            )}
-                        >
-                            <Icon className={cn("w-4 h-4", isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-400")} />
-                            {category.label}
-                        </button>
-                    );
-                })}
-
-                {/* Dynamic Categories */}
-                {dynamicCategories.length > 0 && (
+                {/* Dynamic categories */}
+                {visibleLists.length > 0 && (
                     <>
-                        <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4">
-                            Projects
+                        <div className="pt-5 pb-1.5 px-3">
+                            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                                Lists
+                            </h3>
                         </div>
-                        {dynamicCategories.map((category) => {
+
+                        {visibleLists.map((category) => {
                             const isSelected = selectedCategory === category;
                             return (
                                 <button
                                     key={category}
-                                    onClick={() => onSelectCategory(category)}
+                                    onClick={() => { onSelectCategory(category as Category); setIsMobileMenuOpen(false); }}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                                        isSelected
-                                            ? "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 shadow-sm"
-                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
+                                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200",
+                                        isSelected ? NAV_SELECTED : NAV_DEFAULT
                                     )}
                                 >
-                                    <Hash className={cn("w-4 h-4", isSelected ? "text-purple-600 dark:text-purple-400" : "text-gray-400")} />
-                                    {category}
+                                    <div className="flex items-center gap-2.5">
+                                        <Hash className={cn("w-4 h-4", isSelected ? "text-[#5E5CE6]" : "text-muted-foreground")} />
+                                        {category}
+                                    </div>
+                                    <span className="text-[12px] tabular-nums font-semibold text-muted-foreground/70">{dynamicListCounts[category] || 0}</span>
                                 </button>
                             );
                         })}
                     </>
                 )}
 
-                <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
+                {/* System */}
+                <div className="pt-5 pb-1.5 px-3">
+                    <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                        System
+                    </h3>
+                </div>
 
-                {/* Fixed Bottom Categories */}
                 <button
-                    onClick={() => onSelectCategory("Uncategorized")}
+                    onClick={() => { onSelectCategory("Uncategorized"); setIsMobileMenuOpen(false); }}
                     className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                        selectedCategory === "Uncategorized"
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 shadow-sm"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
+                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200",
+                        selectedCategory === "Uncategorized" ? NAV_SELECTED : NAV_DEFAULT
                     )}
                 >
-                    <HelpCircle className={cn("w-4 h-4", selectedCategory === "Uncategorized" ? "text-blue-600 dark:text-blue-400" : "text-gray-400")} />
-                    Uncategorized
+                    <div className="flex items-center gap-2.5">
+                        <Folder className={cn("w-4 h-4", selectedCategory === "Uncategorized" ? "text-[#5E5CE6]" : "text-muted-foreground")} />
+                        Uncategorized
+                    </div>
+                    <span className="text-[12px] tabular-nums font-semibold text-muted-foreground/70">{counts["Uncategorized"] || 0}</span>
                 </button>
 
                 <button
-                    onClick={() => onSelectCategory("Completed")}
+                    onClick={() => { onSelectCategory("Completed"); setIsMobileMenuOpen(false); }}
                     className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                        selectedCategory === "Completed"
-                            ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 shadow-sm"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
+                        "w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200",
+                        selectedCategory === "Completed" ? NAV_SELECTED : NAV_DEFAULT
                     )}
                 >
-                    <CheckSquare className={cn("w-4 h-4", selectedCategory === "Completed" ? "text-green-600 dark:text-green-400" : "text-gray-400")} />
-                    Completed
+                    <div className="flex items-center gap-2.5">
+                        <CheckSquare className={cn("w-4 h-4", selectedCategory === "Completed" ? "text-green-600 dark:text-green-500" : "text-muted-foreground")} />
+                        Completed
+                    </div>
+                    <span className="text-[12px] tabular-nums font-semibold text-muted-foreground/70">{counts["Completed"] || 0}</span>
                 </button>
             </nav>
 
-            <div className="mt-auto pt-4">
+            <div className="p-3 mt-auto border-t border-border">
                 <UserProfile />
             </div>
         </aside>
     );
 }
 
-import { useSession, signOut } from "next-auth/react";
-import { useState, useRef, useEffect } from "react";
-import { LogOut, ChevronUp } from "lucide-react";
-
 function UserProfile() {
     const { data: session } = useSession();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Close menu when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -150,25 +148,28 @@ function UserProfile() {
 
     if (!session?.user) return null;
 
-    const initials = session.user.name
-        ? session.user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-        : session.user.email?.[0].toUpperCase() || "U";
-
     return (
         <div className="relative" ref={menuRef}>
             {isOpen && (
-                <div className="absolute bottom-full left-0 w-full mb-3 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-gray-100 dark:border-neutral-800 p-2 z-50 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-neutral-800 mb-1">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                            {session.user.name}
+                <div className="absolute bottom-full left-0 w-full mb-2 bg-card rounded-xl shadow-lg border border-border p-1.5 z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-200">
+                    <div className="px-3 py-2.5 border-b border-border mb-1.5">
+                        <p className="font-semibold text-[13px] text-foreground truncate">
+                            {session.user.name || "User"}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-[12px] text-muted-foreground truncate">
                             {session.user.email}
                         </p>
                     </div>
                     <button
+                        onClick={() => { setIsOpen(false); window.dispatchEvent(new Event('open-settings')); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-foreground hover:bg-secondary rounded-lg transition-colors"
+                    >
+                        <Settings className="w-4 h-4 text-muted-foreground" />
+                        Settings
+                    </button>
+                    <button
                         onClick={() => signOut()}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
                     >
                         <LogOut className="w-4 h-4" />
                         Sign Out
@@ -179,22 +180,20 @@ function UserProfile() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "w-full flex items-center gap-3 p-2 rounded-xl transition-all duration-200 group",
-                    isOpen ? "bg-gray-100 dark:bg-neutral-800" : "hover:bg-white dark:hover:bg-neutral-800/50 shadow-sm border border-gray-100 dark:border-neutral-800"
+                    "w-full flex items-center gap-3 p-2 rounded-lg transition-colors duration-200",
+                    isOpen ? "bg-secondary" : "hover:bg-secondary"
                 )}
+                aria-label="Account menu"
             >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs shadow-inner ring-2 ring-white dark:ring-neutral-900">
-                    {initials}
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 border border-border">
+                    <User className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                        {session.user.name?.split(' ')[0] || "User"}
-                    </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors">
-                        View Account
+                    <p className="font-medium text-[14px] text-foreground truncate">
+                        {session.user.name?.split(' ')[0] || session.user.email?.split('@')[0] || "Account"}
                     </p>
                 </div>
-                <ChevronUp className={cn("w-4 h-4 text-gray-400 transition-transform duration-200", isOpen && "rotate-180")} />
+                <ChevronUp className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
             </button>
         </div>
     );
