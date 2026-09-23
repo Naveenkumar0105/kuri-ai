@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 const originalAdapter = PrismaAdapter(prisma);
 
 export const authOptions: NextAuthOptions = {
+    secret: process.env.NEXTAUTH_SECRET,
     adapter: {
         ...originalAdapter,
         linkAccount: (data: any) => {
