@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     shortcut: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",
   },
+  verification: {
+    google: "QPcqJvLLCPHqj5SXpeRyCTHfTvwWsPkPYioQX96T5l4",
+  },
 };
 
 export const viewport: Viewport = {
