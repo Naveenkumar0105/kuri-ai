@@ -130,7 +130,7 @@ Before remediation, `prisma/dev.db` appeared across four historical revisions. O
 
 ## Risk summary
 
-1. **Cached historical exposure:** fresh clones and reachable Git history are clean, but GitHub's API still returns the first obsolete commit by its exact identifier. A GitHub Support purge is required to remove cached views and unreachable objects.
+1. **Cached historical exposure:** fresh clones and reachable Git history are clean, but GitHub's API still returned the first obsolete commit by its exact identifier after the rewrite. A cached-view removal ticket has been created and is awaiting GitHub's confirmation.
 2. **External copies:** any unknown clone or download made before remediation cannot be revoked; affected legacy passwords must be treated as exposed if reused elsewhere.
 3. **Potential credential reuse:** bcrypt hashes cannot be assumed harmless merely because they came from development.
 4. **Production migration risk:** production has no Prisma migration history while the deployment build accepts data loss.

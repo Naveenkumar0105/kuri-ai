@@ -2,7 +2,7 @@
 
 Cleanup date: 2026-09-25
 
-Status: reachable local and GitHub history cleaned and verified; GitHub cached-object removal pending Support authentication
+Status: reachable local and GitHub history cleaned and verified; GitHub cached-view removal ticket created and awaiting completion
 
 ## Scope
 
@@ -50,7 +50,7 @@ The rewrite used `git-filter-repo` 2.47.0 in sensitive-data-removal mode inside 
 
 The repository is public. After the force update, GitHub's API still returned the first obsolete commit when addressed by its exact identifier. The identifier is intentionally excluded from this committed report.
 
-GitHub Support must be asked to remove cached views and unreachable sensitive objects. The private cleanup record established:
+GitHub's cached-view Virtual Assistant accepted a removal request on 2026-09-25 and confirmed that a ticket was created. The request included:
 
 - affected pull-request refs: 0;
 - LFS orphaning: not applicable because LFS is not in use; and

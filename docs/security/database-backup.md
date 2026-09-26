@@ -68,4 +68,4 @@ Recovery must always target a new file first. Do not overwrite `prisma/dev.db` d
 
 ## Next safety gate
 
-The development-data purge, untracking, and approved Git history cleanup have been completed. The remaining external step is a GitHub Support purge of the obsolete commit still available through GitHub's API.
+The development-data purge, untracking, and approved Git history cleanup have been completed. A GitHub cached-view removal ticket has been created for the obsolete commit that remained available through GitHub's API; confirmation is pending.
