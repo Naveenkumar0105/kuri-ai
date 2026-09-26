@@ -72,13 +72,13 @@ The pre-purge data remains recoverable from the local ignored backup. Recovery m
 ## Remaining exposure
 
 - The sanitized SQLite file can remain locally for recovery checks, but Git now ignores it and no longer tracks it.
-- Earlier Git revisions still contain the pre-purge database.
+- Reachable local and GitHub history no longer contains the database path; GitHub Support cleanup is still required for an obsolete cached commit.
 - The protected local backup still contains the original sensitive data and must remain ignored and permission-restricted.
-- No Git history cleanup has been approved or performed.
+- The approved history cleanup and its recovery bundle are documented in [git-history-cleanup.md](git-history-cleanup.md).
 
 ## Explicitly not performed
 
 - No production data was read, changed, or deleted.
 - No database file, table, or schema object was deleted.
-- No Git history was rewritten.
-- No deployment or GitHub push was performed.
+- No deployment was performed.
+- Git history rewriting and the GitHub update occurred only in the later, separately approved cleanup subtask.

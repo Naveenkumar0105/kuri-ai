@@ -118,12 +118,7 @@ SQLite's integrity check returned `ok`.
 
 ### Git exposure
 
-`prisma/dev.db` appears in these four repository revisions:
-
-- `9f006c6` — Refactor: Rename project to Kuri AI and fix priority updates
-- `74489ec` — feat: PWA support, Auth enforcement, User Profile, and PostgreSQL migration
-- `e89ea54` — feat: google calendar sync and updated readme
-- `38071d6` — build: update build script and config for vercel
+Before remediation, `prisma/dev.db` appeared across four historical revisions. On 2026-09-25, the repository history was rewritten to remove that path from every reachable commit. The obsolete commit identifiers are intentionally omitted so this document does not provide pointers to sensitive cached objects. Verification is recorded in [git-history-cleanup.md](git-history-cleanup.md).
 
 ### Development-data classification
 
@@ -131,12 +126,12 @@ SQLite's integrity check returned `ok`.
 - Two accounts do not match obvious synthetic patterns and therefore must be treated as potentially real.
 - All 162 task texts must be treated as potentially personal because their content was intentionally not inspected.
 - All seven password hashes must be treated as exposed security-sensitive data if the repository has been shared or made public.
-- The original data is preserved in a verified, ignored local backup. The working copy has been purged, securely compacted, removed from active Git tracking, and ignored. No history rewrite is approved.
+- The original data is preserved in verified, ignored local backups. The working copy was purged, securely compacted, removed from active Git tracking, and ignored. Reachable local and GitHub history was subsequently rewritten and verified.
 
 ## Risk summary
 
-1. **Historical user data:** earlier repository revisions contain the database with user identifiers, password hashes, and task content; the current branch no longer tracks the sanitized artifact.
-2. **Historical exposure:** removing the file in a future commit would not remove it from the four existing Git revisions.
+1. **Cached historical exposure:** fresh clones and reachable Git history are clean, but GitHub's API still returns the first obsolete commit by its exact identifier. A GitHub Support purge is required to remove cached views and unreachable objects.
+2. **External copies:** any unknown clone or download made before remediation cannot be revoked; affected legacy passwords must be treated as exposed if reused elsewhere.
 3. **Potential credential reuse:** bcrypt hashes cannot be assumed harmless merely because they came from development.
 4. **Production migration risk:** production has no Prisma migration history while the deployment build accepts data loss.
 5. **Production token sensitivity:** the production database contains active OAuth access and refresh token fields.
@@ -153,7 +148,7 @@ Production Supabase data was not part of the backup.
 - No production rows were inserted, updated, or deleted.
 - The approved legacy development rows were purged in the separately documented purge subtask.
 - No production database was backed up, restored, migrated, purged, or removed.
-- No Git history was rewritten.
+- The approved Git history cleanup was performed separately and is documented in [git-history-cleanup.md](git-history-cleanup.md).
 - No credentials or OAuth tokens were rotated.
 - No dependency or application code was changed.
 - No deployment or GitHub push was performed.

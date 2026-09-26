@@ -62,10 +62,10 @@ Recovery must always target a new file first. Do not overwrite `prisma/dev.db` d
 - No production Supabase connection or backup was attempted.
 - The source SQLite database was not overwritten, moved, or untracked during backup creation.
 - The source's development rows were later purged in a separate approved subtask documented in [database-purge.md](database-purge.md).
-- No Git history was changed.
+- Git history was not changed during backup creation; it was later rewritten in the separately approved cleanup documented in [git-history-cleanup.md](git-history-cleanup.md).
 - The sensitive backup file was not staged or committed.
 - No deployment or GitHub push was performed.
 
 ## Next safety gate
 
-The development-data purge has been completed, recovery was revalidated against this backup, and the sanitized legacy database was removed from active Git tracking with a narrow permanent ignore rule. Historical Git cleanup remains a separate destructive decision.
+The development-data purge, untracking, and approved Git history cleanup have been completed. The remaining external step is a GitHub Support purge of the obsolete commit still available through GitHub's API.
