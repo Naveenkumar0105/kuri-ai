@@ -4,7 +4,7 @@ Purge date: 2026-09-25
 
 Repository baseline: `5e766e7`
 
-Status: approved legacy development data purged; schema preserved; backup recovery verified
+Status: approved legacy development data purged; schema preserved; backup recovery verified; sanitized artifact subsequently untracked
 
 ## Exact scope
 
@@ -63,7 +63,7 @@ Run this command from the repository root:
 npm run test:legacy-db-sanitized
 ```
 
-The check fails if the tracked legacy database contains any user or task rows, has an integrity problem, has a foreign-key violation, or retains unallocated pages after compaction. It never prints row contents.
+The check fails if the legacy path is tracked, is not ignored, or contains any user or task rows, integrity problems, foreign-key violations, or unallocated pages. A clean checkout without the obsolete file passes. The check never prints row contents.
 
 ## Recovery status
 
@@ -71,7 +71,7 @@ The pre-purge data remains recoverable from the local ignored backup. Recovery m
 
 ## Remaining exposure
 
-- The empty SQLite file is still tracked in the current working tree.
+- The sanitized SQLite file can remain locally for recovery checks, but Git now ignores it and no longer tracks it.
 - Earlier Git revisions still contain the pre-purge database.
 - The protected local backup still contains the original sensitive data and must remain ignored and permission-restricted.
 - No Git history cleanup has been approved or performed.
@@ -80,6 +80,5 @@ The pre-purge data remains recoverable from the local ignored backup. Recovery m
 
 - No production data was read, changed, or deleted.
 - No database file, table, or schema object was deleted.
-- The legacy database was not untracked.
 - No Git history was rewritten.
 - No deployment or GitHub push was performed.

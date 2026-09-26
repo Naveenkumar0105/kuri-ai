@@ -12,6 +12,7 @@ A powerful AI-driven Task Manager app capable of breaking down complex tasks, or
 
 ### Prerequisites
 - Node.js 18+ installed on your machine.
+- A PostgreSQL database (Supabase or another PostgreSQL provider).
 - A Google Cloud Project with Calendar API enabled (for Calendar Sync).
 - A Gemini API Key (for AI features).
 
@@ -30,8 +31,8 @@ npm install
 Create a file named `.env` in the root folder (`note-ai/`) and add the following keys:
 
 ```env
-# Database (Local SQLite for development)
-DATABASE_URL="file:./dev.db"
+# PostgreSQL database (use a development project locally, never production data)
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
 
 # Authentication Secret (can be any random string)
 NEXTAUTH_SECRET="secret123"

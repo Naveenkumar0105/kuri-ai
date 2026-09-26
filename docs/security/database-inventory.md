@@ -82,7 +82,7 @@ Path: `prisma/dev.db`
 
 Runtime status: not used by the current PostgreSQL Prisma datasource
 
-Git status: tracked and not ignored
+Git status: no longer tracked; ignored at `/prisma/dev.db`
 
 Original file size: 53,248 bytes
 
@@ -131,11 +131,11 @@ SQLite's integrity check returned `ok`.
 - Two accounts do not match obvious synthetic patterns and therefore must be treated as potentially real.
 - All 162 task texts must be treated as potentially personal because their content was intentionally not inspected.
 - All seven password hashes must be treated as exposed security-sensitive data if the repository has been shared or made public.
-- The original data is preserved in a verified, ignored local backup. The tracked copy has been purged but has not yet been removed from active Git tracking. No history rewrite is approved.
+- The original data is preserved in a verified, ignored local backup. The working copy has been purged, securely compacted, removed from active Git tracking, and ignored. No history rewrite is approved.
 
 ## Risk summary
 
-1. **Historical user data:** earlier repository revisions contain the database with user identifiers, password hashes, and task content; the current tracked copy has been purged.
+1. **Historical user data:** earlier repository revisions contain the database with user identifiers, password hashes, and task content; the current branch no longer tracks the sanitized artifact.
 2. **Historical exposure:** removing the file in a future commit would not remove it from the four existing Git revisions.
 3. **Potential credential reuse:** bcrypt hashes cannot be assumed harmless merely because they came from development.
 4. **Production migration risk:** production has no Prisma migration history while the deployment build accepts data loss.
@@ -144,7 +144,7 @@ SQLite's integrity check returned `ok`.
 
 ## Backup status
 
-The exact legacy development artifact identified above was backed up locally, excluded from version control, restored to a temporary location, and verified for checksum, schema, integrity, and aggregate row counts. The tracked copy was subsequently purged without changing its schema. Evidence is recorded in [database-backup.md](database-backup.md) and [database-purge.md](database-purge.md).
+The exact legacy development artifact identified above was backed up locally, excluded from version control, restored to a temporary location, and verified for checksum, schema, integrity, and aggregate row counts. The working copy was subsequently purged without changing its schema, securely compacted, removed from active Git tracking, and ignored. Evidence is recorded in [database-backup.md](database-backup.md) and [database-purge.md](database-purge.md).
 
 Production Supabase data was not part of the backup.
 

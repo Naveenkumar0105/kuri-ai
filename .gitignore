@@ -45,3 +45,6 @@ next-env.d.ts
 
 # local security backups (never commit database copies)
 /.local-backups/
+
+# legacy local database (production and development use PostgreSQL)
+/prisma/dev.db

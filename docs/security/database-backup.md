@@ -68,4 +68,4 @@ Recovery must always target a new file first. Do not overwrite `prisma/dev.db` d
 
 ## Next safety gate
 
-The development-data purge has been completed and recovery was revalidated against this backup. The next independent subtask is to stop tracking the sanitized legacy database and add a narrow permanent ignore rule. Historical Git cleanup remains a separate destructive decision.
+The development-data purge has been completed, recovery was revalidated against this backup, and the sanitized legacy database was removed from active Git tracking with a narrow permanent ignore rule. Historical Git cleanup remains a separate destructive decision.
