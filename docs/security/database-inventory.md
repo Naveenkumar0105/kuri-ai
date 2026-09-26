@@ -136,11 +136,11 @@ SQLite's integrity check returned `ok`.
 5. **Production token sensitivity:** the production database contains active OAuth access and refresh token fields.
 6. **Email verification gap:** none of the production users has an `emailVerified` timestamp.
 
-## Approved next candidate
+## Backup status
 
-The next candidate subtask is to back up **only** the exact legacy development artifact `prisma/dev.db` identified by the size and SHA-256 above. The backup must be stored outside version control, verified by checksum, restored into a temporary location, and checked for matching schema and aggregate counts before any purge or tracking change is considered.
+The exact legacy development artifact identified above has now been backed up locally, excluded from version control, restored to a temporary location, and verified for checksum, schema, integrity, and aggregate row counts. Evidence is recorded in [database-backup.md](database-backup.md).
 
-Production Supabase data is not part of that candidate subtask.
+Production Supabase data was not part of the backup.
 
 ## Explicitly not performed
 
