@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "npx prisma generate && npx prisma db push --accept-data-loss && next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:legacy-db-sanitized": "sh scripts/verify-legacy-db-sanitized.sh"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

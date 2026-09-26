@@ -4,7 +4,7 @@ Backup date: 2026-09-25
 
 Repository baseline: `7e4c12f`
 
-Status: backup created and independently restored; no source data changed
+Status: backup created and independently restored; source was later purged in an approved separate subtask
 
 ## Scope
 
@@ -57,15 +57,15 @@ Recovery must always target a new file first. Do not overwrite `prisma/dev.db` d
 4. Run `PRAGMA integrity_check` and verify the aggregate row counts above.
 5. Replace another database only after identifying that exact target and obtaining explicit approval.
 
-## Explicitly not performed
+## Post-backup status
 
 - No production Supabase connection or backup was attempted.
-- No production or development rows were changed or deleted.
-- The source SQLite database was not overwritten, moved, or untracked.
+- The source SQLite database was not overwritten, moved, or untracked during backup creation.
+- The source's development rows were later purged in a separate approved subtask documented in [database-purge.md](database-purge.md).
 - No Git history was changed.
 - The sensitive backup file was not staged or committed.
 - No deployment or GitHub push was performed.
 
 ## Next safety gate
 
-No development-data purge is approved yet. Before any purge, the exact rows or data classes proposed for removal must be presented for explicit approval, and recovery must be revalidated against this backup.
+The development-data purge has been completed and recovery was revalidated against this backup. The next independent subtask is to stop tracking the sanitized legacy database and add a narrow permanent ignore rule. Historical Git cleanup remains a separate destructive decision.
