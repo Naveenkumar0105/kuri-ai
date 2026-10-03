@@ -3,33 +3,41 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from "uuid";
 import { Sidebar } from "@/components/Sidebar";
 import { TaskList } from "@/components/TaskList";
 import { SettingsModal } from "@/components/SettingsModal";
 import { TaskInput } from "@/components/TaskInput";
 import { TaskDetailsModal } from "@/components/TaskDetailsModal";
 import { DecompositionModal } from "@/components/DecompositionModal";
-import { Task, Category } from "@/types";
-import { ListTree, ArrowUpDown } from "lucide-react";
+import { SharedSpacesModal } from "@/components/SharedSpacesModal";
+import { ActivityPanel } from "@/components/ActivityPanel";
+import { Task, Category, SharedSpace, TaskActivity } from "@/types";
+import { ArrowUpDown, Bell, CircleDashed, UserCheck, Clock3 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ThinkingOrb } from "thinking-orbs";
 
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [spaces, setSpaces] = useState<SharedSpace[]>([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState("personal");
+  const [isSpacesModalOpen, setIsSpacesModalOpen] = useState(false);
+  const [activities, setActivities] = useState<TaskActivity[]>([]);
+  const [unreadActivityCount, setUnreadActivityCount] = useState(0);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [attentionFilter, setAttentionFilter] = useState<"all" | "unclaimed" | "mine" | "overdue">("all");
   const [categoriesRegistry, setCategoriesRegistry] = useState<string[]>(["Work", "Personal", "Shopping", "Health"]);
 
   // Derived State Logic
   const permanentLists = ["Work", "Personal", "Shopping", "Health"];
+  const scopedTasks = tasks.filter(task => selectedSpaceId === "personal" ? !task.sharedSpaceId : task.sharedSpaceId === selectedSpaceId);
   
-  const parentIds = new Set(tasks.filter(t => t.parentId).map(t => t.parentId));
+  const parentIds = new Set(scopedTasks.filter(t => t.parentId).map(t => t.parentId));
   const counts = { "All Tasks": 0, "Uncategorized": 0, "Completed": 0 } as Record<string, number>;
   const dynamicListCounts = {} as Record<string, number>;
   permanentLists.forEach(list => dynamicListCounts[list] = 0);
 
-  tasks.forEach(task => {
+  scopedTasks.forEach(task => {
       if (task.completed) {
           counts["Completed"]++;
           return; // completed tasks don't count towards active list counts
@@ -85,6 +93,35 @@ export default function Home() {
   }, [status]);
 
   useEffect(() => {
+    if (status !== "authenticated" || selectedSpaceId === "personal") return;
+    const loadActivity = () => fetch(`/api/spaces/${selectedSpaceId}/activity`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.activities)) setActivities(data.activities);
+        if (typeof data.unreadCount === "number") {
+          setUnreadActivityCount(data.unreadCount);
+          setSpaces(prev => prev.map(space => space.id === selectedSpaceId ? { ...space, unreadActivityCount: data.unreadCount } : space));
+        }
+      })
+      .catch(err => console.error("Failed to fetch activity", err));
+    void loadActivity();
+    const interval = window.setInterval(loadActivity, 5000);
+    return () => window.clearInterval(interval);
+  }, [selectedSpaceId, status]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const loadSpaces = () => fetch("/api/spaces")
+          .then(res => res.json())
+          .then(data => { if (Array.isArray(data)) setSpaces(data); })
+          .catch(err => console.error("Failed to fetch spaces", err));
+      void loadSpaces();
+      const interval = window.setInterval(loadSpaces, 15000);
+      return () => window.clearInterval(interval);
+    }
+  }, [status]);
+
+  useEffect(() => {
     const handleOpen = () => setIsSettingsOpen(true);
     window.addEventListener('open-settings', handleOpen);
     return () => window.removeEventListener('open-settings', handleOpen);
@@ -115,15 +152,20 @@ export default function Home() {
   // Fetch tasks from API
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/tasks")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            // Ensure dates are properly converted if needed, though JSON returns strings
-            setTasks(data);
-          }
-        })
-        .catch((err) => console.error("Failed to fetch tasks", err));
+      const loadTasks = () => {
+        if (document.visibilityState === "hidden") return;
+        fetch("/api/tasks")
+          .then((res) => res.json())
+          .then((data) => { if (Array.isArray(data)) setTasks(data); })
+          .catch((err) => console.error("Failed to fetch tasks", err));
+      };
+      loadTasks();
+      const interval = window.setInterval(loadTasks, 5000);
+      window.addEventListener("focus", loadTasks);
+      return () => {
+        window.clearInterval(interval);
+        window.removeEventListener("focus", loadTasks);
+      };
     }
   }, [status]);
 
@@ -143,20 +185,22 @@ export default function Home() {
       } catch (e) { console.error("Failed to register category", e); }
   };
 
-  const addTask = async (text: string, useAI: boolean = false): Promise<boolean> => {
+  const addTask = async (text: string, useAI: boolean = false, targetSpaceId: string = selectedSpaceId): Promise<boolean> => {
     try {
       setError(null);
 
       if (!useAI) {
         // Quick Add Path
         const tempId = `temp-${Date.now()}`;
-        const categoryToUse = (selectedCategory !== "All Tasks" && selectedCategory !== "Completed") ? selectedCategory : "Uncategorized";
+        const isAddingToCurrentSpace = targetSpaceId === selectedSpaceId;
+        const categoryToUse = isAddingToCurrentSpace && selectedCategory !== "All Tasks" && selectedCategory !== "Completed" ? selectedCategory : "Uncategorized";
         const optimisticTask: Task = {
             id: tempId,
             text,
             category: categoryToUse as Category,
             completed: false,
-            userId: "temp",
+            userId: session?.user?.id || "temp",
+            sharedSpaceId: targetSpaceId === "personal" ? null : targetSpaceId,
             createdAt: Date.now()
         };
 
@@ -166,10 +210,13 @@ export default function Home() {
         const res = await fetch("/api/tasks", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, category: categoryToUse }),
+            body: JSON.stringify({ text, category: categoryToUse, sharedSpaceId: targetSpaceId === "personal" ? null : targetSpaceId }),
         });
 
-        if (!res.ok) throw new Error("Failed to save task");
+        if (!res.ok) {
+            setTasks(prev => prev.filter(task => task.id !== tempId));
+            throw new Error("Failed to save task");
+        }
         const savedTask = await res.json();
         
         setTasks((prev) => prev.map(t => t.id === tempId ? savedTask : t));
@@ -335,6 +382,7 @@ export default function Home() {
           dateType: t.dateType,
           priority: t.priority,
           parentId: parentId || undefined,
+          sharedSpaceId: selectedSpaceId === "personal" ? null : selectedSpaceId,
         }),
       });
       const savedTask = await res.json();
@@ -494,12 +542,60 @@ export default function Home() {
   };
 
   const deleteTask = async (id: string) => {
-    // Optimistic update
+    const previousTasks = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== id));
 
-    await fetch(`/api/tasks/${id}`, {
+    const response = await fetch(`/api/tasks/${id}`, {
       method: "DELETE",
     });
+    if (!response.ok) {
+      setTasks(previousTasks);
+      const data = await response.json().catch(() => ({}));
+      showToast(data.error || "Could not delete this task");
+    }
+  };
+
+  const claimTask = async (task: Task) => {
+    const response = await fetch(`/api/tasks/${task.id}/claim`, { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || "Could not claim this task");
+      return;
+    }
+    setTasks(prev => prev.map(item => item.id === task.id ? data : item));
+    showToast(data.claimedById ? "Task claimed" : "Task released");
+  };
+
+  const handleSpaceAdded = (space: SharedSpace) => {
+    setSpaces(prev => [...prev.filter(item => item.id !== space.id), space]);
+    setSelectedSpaceId(space.id);
+    setSelectedCategory("All Tasks");
+    setAttentionFilter("all");
+    setActivities([]);
+    setUnreadActivityCount(0);
+    setIsSpacesModalOpen(false);
+  };
+
+  const selectSpace = (spaceId: string) => {
+    setSelectedSpaceId(spaceId);
+    setSelectedCategory("All Tasks");
+    setAttentionFilter("all");
+    setIsActivityOpen(false);
+    setActivities([]);
+    setUnreadActivityCount(0);
+  };
+
+  const selectCategory = (category: string) => {
+    setSelectedCategory(category);
+    setAttentionFilter("all");
+  };
+
+  const openActivity = () => {
+    if (selectedSpaceId === "personal") return;
+    setIsActivityOpen(true);
+    setUnreadActivityCount(0);
+    setSpaces(prev => prev.map(space => space.id === selectedSpaceId ? { ...space, unreadActivityCount: 0 } : space));
+    void fetch(`/api/spaces/${selectedSpaceId}/activity`, { method: "POST" });
   };
 
   const updateTask = async (updatedTask: Task) => {
@@ -531,14 +627,29 @@ export default function Home() {
       return task.category === selectedCategory;
     }
     
-    const parent = tasks.find(t => t.id === task.parentId);
+    const parent = scopedTasks.find(t => t.id === task.parentId);
     
     const cat = (task.category || "Uncategorized").trim();
     const normalized = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
     return parent ? isTaskInSelectedCategory(parent) : normalized === selectedCategory;
   };
 
-  const filteredTasks = tasks.filter(isTaskInSelectedCategory);
+  const activeSpace = spaces.find(space => space.id === selectedSpaceId);
+  const isOverdueTask = (task: Task) => Boolean(task.dueDate && (!task.dateType || task.dateType === "due") && new Date(task.dueDate) < new Date() && !task.completed);
+  const attentionCounts = {
+    all: scopedTasks.filter(task => !task.completed).length,
+    unclaimed: scopedTasks.filter(task => !task.completed && !task.claimedById).length,
+    mine: scopedTasks.filter(task => !task.completed && task.claimedById === session?.user?.id).length,
+    overdue: scopedTasks.filter(isOverdueTask).length,
+  };
+  const filteredTasks = scopedTasks
+    .filter(isTaskInSelectedCategory)
+    .filter(task => {
+      if (!activeSpace || selectedCategory === "Completed" || attentionFilter === "all") return true;
+      if (attentionFilter === "unclaimed") return !task.claimedById;
+      if (attentionFilter === "mine") return task.claimedById === session?.user?.id;
+      return isOverdueTask(task);
+    });
 
   const finalSortedTasks = [...filteredTasks].sort((a, b) => {
     // 1. Primary Sort: Priority (if enabled)
@@ -568,23 +679,27 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] bg-background text-foreground transition-colors duration-300">
+    <div className="flex h-[100dvh] overflow-hidden bg-background text-foreground transition-colors duration-300">
       <Sidebar
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={selectCategory}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
         counts={counts}
         dynamicListCounts={dynamicListCounts}
         visibleLists={visibleLists}
+        spaces={spaces}
+        selectedSpaceId={selectedSpaceId}
+        onSelectSpace={selectSpace}
+        onManageSpaces={() => setIsSpacesModalOpen(true)}
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <main className="w-full max-w-[860px] mx-auto p-6 md:px-12 md:py-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
-              {selectedCategory}
+              {activeSpace ? `${activeSpace.name} · ${selectedCategory}` : selectedCategory}
               {sortByPriority && (
                 <span className="text-[11px] font-medium px-2 py-0.5 bg-[#5E5CE6]/10 text-[#5E5CE6] rounded-md">
                   Priority
@@ -596,6 +711,21 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {activeSpace && (
+              <button
+                onClick={openActivity}
+                className="relative p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                title="Space activity"
+                aria-label={`Space activity${unreadActivityCount ? `, ${unreadActivityCount} unread` : ""}`}
+              >
+                <Bell className="w-4 h-4" />
+                {unreadActivityCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#EF4444] text-white text-[9px] font-bold flex items-center justify-center">
+                    {unreadActivityCount > 9 ? "9+" : unreadActivityCount}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setSortByPriority(!sortByPriority)}
               className={`p-2 rounded-lg transition-colors ${sortByPriority
@@ -609,6 +739,27 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {activeSpace && selectedCategory !== "Completed" && (
+          <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+            {([
+              { id: "all", label: "Open", icon: CircleDashed },
+              { id: "unclaimed", label: "Unclaimed", icon: CircleDashed },
+              { id: "mine", label: "Claimed by me", icon: UserCheck },
+              { id: "overdue", label: "Overdue", icon: Clock3 },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => { setAttentionFilter(id); setSelectedCategory("All Tasks"); }}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${attentionFilter === id ? "border-[#5E5CE6]/30 bg-[#5E5CE6]/10 text-[#5E5CE6]" : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+                <span className="tabular-nums opacity-70">{attentionCounts[id]}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col gap-4">
           {selectedCategory !== "Completed" && (
@@ -643,6 +794,8 @@ export default function Home() {
             suggestOrganizeTaskIds={suggestOrganizeTaskIds}
             onOrganizeTask={organizeTask}
             selectedCategory={selectedCategory}
+            currentUserId={session?.user?.id}
+            onClaimTask={claimTask}
           />
         </div>
       </main>
@@ -682,6 +835,22 @@ export default function Home() {
         preference={aiPreference} 
         onPreferenceChange={handlePreferenceChange} 
       />
+
+      <SharedSpacesModal
+        isOpen={isSpacesModalOpen}
+        spaces={spaces}
+        onClose={() => setIsSpacesModalOpen(false)}
+        onSpaceAdded={handleSpaceAdded}
+      />
+
+      {activeSpace && (
+        <ActivityPanel
+          isOpen={isActivityOpen}
+          spaceName={activeSpace.name}
+          activities={activities}
+          onClose={() => setIsActivityOpen(false)}
+        />
+      )}
 
       {/* Modals */}
       <TaskDetailsModal

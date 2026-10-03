@@ -1,6 +1,6 @@
 "use client";
-import { Folder, Inbox, CheckSquare, Hash, LogOut, Settings, ChevronUp, User } from "lucide-react";
-import { Category } from "@/types";
+import { Folder, Inbox, CheckSquare, Hash, LogOut, Settings, ChevronUp, User, Users, Plus, House } from "lucide-react";
+import { Category, SharedSpace } from "@/types";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
@@ -13,15 +13,19 @@ interface SidebarProps {
     counts: Record<string, number>;
     dynamicListCounts: Record<string, number>;
     visibleLists: string[];
+    spaces: SharedSpace[];
+    selectedSpaceId: string;
+    onSelectSpace: (spaceId: string) => void;
+    onManageSpaces: () => void;
 }
 
 const NAV_SELECTED = "bg-card text-foreground shadow-sm border border-border";
 const NAV_DEFAULT = "text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent";
 
-export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, setIsMobileMenuOpen, counts, dynamicListCounts, visibleLists }: SidebarProps) {
+export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, setIsMobileMenuOpen, counts, dynamicListCounts, visibleLists, spaces, selectedSpaceId, onSelectSpace, onManageSpaces }: SidebarProps) {
     return (
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-40 w-64 bg-secondary/50 dark:bg-[#18181A] border-r border-border flex flex-col transition-transform duration-300 md:relative md:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 w-64 min-h-0 bg-secondary/50 dark:bg-[#18181A] border-r border-border flex flex-col transition-transform duration-300 md:relative md:translate-x-0",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             {/* Mobile overlay */}
@@ -32,7 +36,7 @@ export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, 
                 />
             )}
 
-            <div className="p-5 pb-3">
+            <div className="shrink-0 p-5 pb-3">
                 <h2 className="text-[15px] font-bold text-foreground tracking-tight flex items-center gap-2">
                     <div className="w-5 h-5 rounded-[6px] bg-[#5E5CE6] flex items-center justify-center shadow-sm">
                         <CheckSquare className="w-3 h-3 text-white" />
@@ -41,7 +45,36 @@ export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, 
                 </h2>
             </div>
 
-            <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+            <nav className="min-h-0 flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+                <div className="pb-1.5 px-3 flex items-center justify-between">
+                    <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Spaces</h3>
+                    <button onClick={onManageSpaces} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary" title="Create or join a space" aria-label="Manage shared spaces">
+                        <Plus className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+                <button
+                    onClick={() => { onSelectSpace("personal"); setIsMobileMenuOpen(false); }}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200", selectedSpaceId === "personal" ? NAV_SELECTED : NAV_DEFAULT)}
+                >
+                    <House className={cn("w-4 h-4", selectedSpaceId === "personal" ? "text-[#5E5CE6]" : "text-muted-foreground")} />
+                    My tasks
+                </button>
+                {spaces.map((space) => (
+                    <button
+                        key={space.id}
+                        onClick={() => { onSelectSpace(space.id); setIsMobileMenuOpen(false); }}
+                        className={cn("w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] font-medium transition-all duration-200", selectedSpaceId === space.id ? NAV_SELECTED : NAV_DEFAULT)}
+                    >
+                        <span className="flex min-w-0 items-center gap-2.5"><Users className={cn("w-4 h-4 flex-shrink-0", selectedSpaceId === space.id ? "text-[#5E5CE6]" : "text-muted-foreground")} /><span className="truncate">{space.name}</span></span>
+                        {space.unreadActivityCount ? (
+                            <span className="min-w-5 h-5 px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center">{space.unreadActivityCount > 9 ? "9+" : space.unreadActivityCount}</span>
+                        ) : (
+                            <span className="text-[11px] text-muted-foreground/70">{space.memberCount}</span>
+                        )}
+                    </button>
+                ))}
+
+                <div className="pt-5 pb-1.5 px-3"><h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Tasks</h3></div>
                 {/* All Tasks */}
                 <button
                     onClick={() => { onSelectCategory("All Tasks"); setIsMobileMenuOpen(false); }}
@@ -124,7 +157,7 @@ export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, 
                 </button>
             </nav>
 
-            <div className="p-3 mt-auto border-t border-border">
+            <div className="shrink-0 p-3 border-t border-border">
                 <UserProfile />
             </div>
         </aside>

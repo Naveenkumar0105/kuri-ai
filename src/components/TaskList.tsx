@@ -2,7 +2,7 @@
 
 import { Task, Category } from "@/types";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Check, Flag, Trash2, Calendar, Tag, RotateCcw, ChevronRight, ChevronDown, Sparkles } from "lucide-react";
+import { Check, Flag, Trash2, Calendar, Tag, RotateCcw, ChevronRight, ChevronDown, Sparkles, UserCheck, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
@@ -14,6 +14,8 @@ interface TaskListProps {
     selectedCategory: Category | "All Tasks";
     suggestOrganizeTaskIds: Set<string>;
     onOrganizeTask: (task: Task) => void;
+    currentUserId?: string;
+    onClaimTask: (task: Task) => void;
 }
 
 interface TaskItemProps {
@@ -26,9 +28,11 @@ interface TaskItemProps {
     onTaskClick: (task: Task) => void;
     suggestOrganize?: boolean;
     onOrganizeTask?: (task: Task) => void;
+    currentUserId?: string;
+    onClaimTask?: (task: Task) => void;
 }
 
-const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, onToggleTask, onDeleteTask, onTaskClick, suggestOrganize, onOrganizeTask }: TaskItemProps) => {
+const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, onToggleTask, onDeleteTask, onTaskClick, suggestOrganize, onOrganizeTask, currentUserId, onClaimTask }: TaskItemProps) => {
     const subtasks = getSubtasks(task.id);
     const [isExpanded, setIsExpanded] = useState(true);
     const [visualCompleted, setVisualCompleted] = useState(task.completed);
@@ -193,6 +197,25 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                             </span>
                         </>
                     )}
+                    {task.sharedSpaceId && !task.completed && (
+                        <>
+                            {(task.priority || task.dueDate || (showCategory && !isSubtask)) && <span className="text-border">·</span>}
+                            {task.claimedById && task.claimedById !== currentUserId ? (
+                                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                    <UserCheck className="w-3 h-3" />
+                                    {task.claimedBy?.name?.split(" ")[0] || task.claimedBy?.email?.split("@")[0] || "Someone"} has this
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={(event) => { event.stopPropagation(); onClaimTask?.(task); }}
+                                    className={cn("flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors", task.claimedById === currentUserId ? "text-[#5E5CE6] bg-[#5E5CE6]/10 hover:bg-[#5E5CE6]/15" : "hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10")}
+                                >
+                                    {task.claimedById === currentUserId ? <UserCheck className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                                    {task.claimedById === currentUserId ? "Claimed by you" : "I’ll do it"}
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -226,19 +249,6 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>
-                {task.dueDate && !task.completed && (
-                    <a
-                        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(task.text)}&details=${encodeURIComponent(task.description || "")}&dates=${new Date(task.dueDate).toISOString().replace(/-|:|\.\d\d\d/g, "")}/${new Date(new Date(task.dueDate).getTime() + 60 * 60 * 1000).toISOString().replace(/-|:|\.\d\d\d/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors"
-                        title="Add to Google Calendar"
-                        aria-label="Add to Google Calendar"
-                    >
-                        <Calendar className="w-4 h-4" />
-                    </a>
-                )}
             </div>
 
             </div>
@@ -255,6 +265,8 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                             onToggleTask={onToggleTask}
                             onDeleteTask={onDeleteTask}
                             onTaskClick={onTaskClick}
+                            currentUserId={currentUserId}
+                            onClaimTask={onClaimTask}
                         />
                     ))}
                 </div>
@@ -263,7 +275,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
     );
 };
 
-export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory, suggestOrganizeTaskIds, onOrganizeTask }: TaskListProps) {
+export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory, suggestOrganizeTaskIds, onOrganizeTask, currentUserId, onClaimTask }: TaskListProps) {
     const rootTasks = tasks.filter(t => !t.parentId || !tasks.some(p => p.id === t.parentId));
     const getSubtasks = (parentId: string) => tasks.filter(t => t.parentId === parentId);
 
@@ -343,6 +355,8 @@ export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selec
                                         onTaskClick={onTaskClick}
                                         suggestOrganize={suggestOrganizeTaskIds.has(task.id)}
                                         onOrganizeTask={onOrganizeTask}
+                                        currentUserId={currentUserId}
+                                        onClaimTask={onClaimTask}
                                     />
                                 ))}
                             </AnimatePresence>

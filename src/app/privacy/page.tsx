@@ -23,36 +23,13 @@ export default function PrivacyPolicy() {
                     <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">2. Information We Collect</h2>
                     <p>We collect information that you voluntarily provide to us when you register on the Service, including:</p>
                     <ul className="list-disc pl-6 space-y-2">
-                        <li><strong>Account Information:</strong> Email address, name, and profile picture (via Google OAuth).</li>
+                        <li><strong>Account Information:</strong> Email address and name.</li>
                         <li><strong>User Content:</strong> The text of the tasks, categories, and descriptions you input into KuriAI.</li>
                     </ul>
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">3. How We Use Google User Data</h2>
-                    <p>
-                        KuriAI allows you to sign in using your Google account and optionally sync tasks to your Google Calendar. 
-                        Our use of information received from Google APIs adheres strictly to the 
-                        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline mx-1">
-                            Google API Services User Data Policy
-                        </a>, including the Limited Use requirements.
-                    </p>
-                    <ul className="list-disc pl-6 space-y-2">
-                        <li>
-                            <strong>Authentication:</strong> We use your Google email and basic profile information solely to authenticate you and create your KuriAI account.
-                        </li>
-                        <li>
-                            <strong>Google Calendar Integration:</strong> If you choose to sync a task to your calendar, KuriAI requests access to create events on your Google Calendar (`calendar.events` scope). 
-                            We only use this permission to push the specific tasks you select to your calendar.
-                        </li>
-                        <li>
-                            <strong>Data Storage & Sharing:</strong> We do <strong>not</strong> read your existing calendar events. We do <strong>not</strong> share, sell, or transfer your Google user data to any third-party advertising or data-broker platforms.
-                        </li>
-                    </ul>
-                </section>
-
-                <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">4. Artificial Intelligence Processing</h2>
+                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">3. Artificial Intelligence Processing</h2>
                     <p>
                         When you use the "Organize with AI" feature, the text of your specific task is securely processed by Google's Gemini API to extract dates, categorize, and break down subtasks. 
                         Your data is not used to train global AI models.
@@ -60,17 +37,17 @@ export default function PrivacyPolicy() {
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">5. Data Retention and Deletion</h2>
+                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">4. Data Retention and Deletion</h2>
                     <p>
                         You can delete your tasks and categories at any time from within the application. If you wish to delete your entire account and all associated data, 
-                        you may revoke access from your Google Account security settings or contact us directly.
+                        contact us directly.
                     </p>
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">6. Contact Us</h2>
+                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">5. Contact Us</h2>
                     <p>
-                        If you have any questions or concerns about this Privacy Policy, please contact the developer via the email associated with the Google Cloud project owner.
+                        If you have any questions or concerns about this Privacy Policy, please contact the developer.
                     </p>
                 </section>
             </div>

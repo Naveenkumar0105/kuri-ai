@@ -11,19 +11,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String?
-  name          String?
-  image         String?
-  emailVerified DateTime?
-  aiConfirmationPreference String @default("SPLIT_ONLY")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  tasks         Task[]
-  accounts      Account[]
-  sessions      Session[]
-  categories    Category[]
+  id                       String              @id @default(cuid())
+  email                    String              @unique
+  password                 String?
+  name                     String?
+  image                    String?
+  emailVerified            DateTime?
+  aiConfirmationPreference String              @default("SPLIT_ONLY")
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  tasks                    Task[]              @relation("TaskCreator")
+  claimedTasks             Task[]              @relation("TaskClaimer")
+  createdSpaces            SharedSpace[]       @relation("SpaceCreator")
+  spaceMemberships         SharedSpaceMember[]
+  taskActivities           TaskActivity[]      @relation("ActivityActor")
+  accounts                 Account[]
+  sessions                 Session[]
+  categories               Category[]
 }
 
 model Account {
@@ -62,20 +66,70 @@ model VerificationToken {
 }
 
 model Task {
-  id          String   @id @default(cuid())
-  text        String
-  category    String
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  priority    String?  // 'Low', 'Medium', 'High'
-  description String?
-  dueDate     DateTime?
-  dateType    String?  // 'due', 'scheduled'
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentId    String?
-  parent      Task?    @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
-  subtasks    Task[]   @relation("Subtasks")
+  id            String         @id @default(cuid())
+  text          String
+  category      String
+  completed     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  priority      String? // 'Low', 'Medium', 'High'
+  description   String?
+  dueDate       DateTime?
+  dateType      String? // 'due', 'scheduled'
+  userId        String
+  user          User           @relation("TaskCreator", fields: [userId], references: [id], onDelete: Cascade)
+  sharedSpaceId String?
+  sharedSpace   SharedSpace?   @relation(fields: [sharedSpaceId], references: [id], onDelete: Cascade)
+  claimedById   String?
+  claimedBy     User?          @relation("TaskClaimer", fields: [claimedById], references: [id], onDelete: SetNull)
+  claimedAt     DateTime?
+  parentId      String?
+  parent        Task?          @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks      Task[]         @relation("Subtasks")
+  activities    TaskActivity[]
+
+  @@index([sharedSpaceId])
+}
+
+model SharedSpace {
+  id          String              @id @default(cuid())
+  name        String
+  inviteCode  String              @unique
+  createdById String
+  createdBy   User                @relation("SpaceCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  members     SharedSpaceMember[]
+  tasks       Task[]
+  activities  TaskActivity[]
+}
+
+model SharedSpaceMember {
+  id                   String      @id @default(cuid())
+  sharedSpaceId        String
+  userId               String
+  role                 String      @default("MEMBER")
+  joinedAt             DateTime    @default(now())
+  lastViewedActivityAt DateTime    @default(now())
+  sharedSpace          SharedSpace @relation(fields: [sharedSpaceId], references: [id], onDelete: Cascade)
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedSpaceId, userId])
+  @@index([userId])
+}
+
+model TaskActivity {
+  id            String      @id @default(cuid())
+  type          String
+  taskText      String
+  createdAt     DateTime    @default(now())
+  sharedSpaceId String
+  sharedSpace   SharedSpace @relation(fields: [sharedSpaceId], references: [id], onDelete: Cascade)
+  taskId        String?
+  task          Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  actorId       String?
+  actor         User?       @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([sharedSpaceId, createdAt])
 }
 
 model Category {

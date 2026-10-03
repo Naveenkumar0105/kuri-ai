@@ -23,7 +23,7 @@ export default function HomePage() {
                         </li>
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-3">📅</span>
-                            <span><strong>Google Calendar Sync:</strong> Optional integration to export your tasks directly to your Google Calendar so you never miss a deadline.</span>
+                            <span><strong>Cross-device access:</strong> Use Kuri AI from a browser or install it as an app on a supported device.</span>
                         </li>
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-3">📂</span>
