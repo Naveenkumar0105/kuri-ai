@@ -286,7 +286,7 @@ export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selec
 
         const normalizeCategory = (cat: string) => {
         const c = (cat || "Uncategorized").trim();
-        return c.charAt(0).toUpperCase() + c.slice(1).toLowerCase();
+        return c;
     };
 
     const groupedTasks = isAllOrCompleted
