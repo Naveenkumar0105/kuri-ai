@@ -84,7 +84,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json(task);
     } catch (error) {
         console.error("Failed to update task", error);
-        return NextResponse.json({ error: "Failed to update task", details: String(error) }, { status: 500 });
+        return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
     }
 }
 
