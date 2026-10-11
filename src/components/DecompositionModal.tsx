@@ -65,6 +65,7 @@ export function DecompositionModal({
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close task preview"
                         disabled={isSubmitting}
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
                     >

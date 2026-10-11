@@ -76,7 +76,7 @@ export function TaskDetailsModal({
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
                         <h2 className="text-[17px] font-semibold tracking-tight text-gray-900 dark:text-white">Task Details</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <button onClick={onClose} aria-label="Close task details" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
                     </div>

@@ -22,6 +22,7 @@ export function SettingsModal({ isOpen, onClose, preference, onPreferenceChange 
                     </h2>
                     <button
                         onClick={onClose}
+                        aria-label="Close settings"
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                     >
                         <X className="w-5 h-5" />

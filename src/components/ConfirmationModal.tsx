@@ -51,6 +51,7 @@ export function ConfirmationModal({
                                     </div>
                                     <button
                                         onClick={onClose}
+                                        aria-label="Close confirmation"
                                         className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
                                     >
                                         <X className="w-5 h-5" />
