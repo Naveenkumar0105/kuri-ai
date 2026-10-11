@@ -111,6 +111,6 @@ export async function POST(req: Request) {
       })).filter((t: any) => t.text.length > 0);
     }
 
-    return NextResponse.json({ tasks, source: "fallback", error: String(error) });
+    return NextResponse.json({ tasks, source: "fallback" });
   }
 }
