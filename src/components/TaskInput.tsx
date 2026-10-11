@@ -63,6 +63,7 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Add a new task…"
+                    aria-label="New task"
                     className={cn(
                         "w-full px-4 py-3 text-[15px] bg-transparent border-none focus:ring-0 placeholder:text-muted-foreground text-foreground pr-36 rounded-xl transition-colors",
                         isProcessing && "text-muted-foreground"
