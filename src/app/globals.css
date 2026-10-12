@@ -99,4 +99,8 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  html:has(.kuri-companion), body:has(.kuri-companion) {
+    background: transparent;
+  }
 }
