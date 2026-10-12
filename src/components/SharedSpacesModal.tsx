@@ -72,9 +72,10 @@ export function SharedSpacesModal({ isOpen, spaces, onClose, onSpaceAdded }: Sha
 
                 <div className="p-5 space-y-5">
                     <form onSubmit={createSpace} className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground">Create a space</label>
+                        <label htmlFor="shared-space-name" className="text-sm font-semibold text-foreground">Create a space</label>
                         <div className="flex gap-2">
                             <input
+                                id="shared-space-name"
                                 value={name}
                                 onChange={(event) => setName(event.target.value)}
                                 placeholder="Apartment, Family, Studio…"
@@ -89,9 +90,10 @@ export function SharedSpacesModal({ isOpen, spaces, onClose, onSpaceAdded }: Sha
                     <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px bg-border flex-1" />or join one<span className="h-px bg-border flex-1" /></div>
 
                     <form onSubmit={joinSpace} className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground">Enter an invite code</label>
+                        <label htmlFor="shared-space-invite-code" className="text-sm font-semibold text-foreground">Enter an invite code</label>
                         <div className="flex gap-2">
                             <input
+                                id="shared-space-invite-code"
                                 value={inviteCode}
                                 onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
                                 placeholder="Invite code"
