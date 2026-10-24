@@ -52,9 +52,14 @@ export function SharedSpacesModal({ isOpen, spaces, onClose, onSpaceAdded }: Sha
     };
 
     const copyCode = async (code: string) => {
-        await navigator.clipboard.writeText(code);
-        setCopiedCode(code);
-        window.setTimeout(() => setCopiedCode(null), 1500);
+        setError(null);
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            window.setTimeout(() => setCopiedCode(null), 1500);
+        } catch {
+            setError("Couldn't copy the invite code. Please try again.");
+        }
     };
 
     return (
