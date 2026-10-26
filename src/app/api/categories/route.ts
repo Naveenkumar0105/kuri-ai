@@ -30,9 +30,9 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        let { name } = body;
+        let name = body?.name;
         
-        if (!name) {
+        if (typeof name !== "string" || !name.trim()) {
             return NextResponse.json({ error: "Name is required" }, { status: 400 });
         }
         
