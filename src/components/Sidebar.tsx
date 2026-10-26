@@ -217,6 +217,7 @@ function UserProfile() {
                     isOpen ? "bg-secondary" : "hover:bg-secondary"
                 )}
                 aria-label="Account menu"
+                aria-expanded={isOpen}
             >
                 <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 border border-border">
                     <User className="w-4 h-4 text-muted-foreground" />
