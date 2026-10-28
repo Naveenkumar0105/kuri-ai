@@ -85,8 +85,9 @@ export function TaskDetailsModal({
                     <div className="p-6 space-y-6 overflow-y-auto flex-1">
                         {/* Title */}
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</label>
+                            <label htmlFor="task-details-title" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</label>
                             <input
+                                id="task-details-title"
                                 type="text"
                                 value={editedTask.text}
                                 onChange={(e) => setEditedTask({ ...editedTask, text: e.target.value })}
@@ -229,10 +230,11 @@ export function TaskDetailsModal({
 
                         {/* Description */}
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <label htmlFor="task-details-description" className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                 <AlignLeft className="w-3 h-3" /> Description
                             </label>
                             <textarea
+                                id="task-details-description"
                                 value={editedTask.description || ""}
                                 onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
                                 className="w-full p-4 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-xl border-none focus:ring-2 focus:ring-[#0A84FF] focus:ring-opacity-50 text-gray-900 dark:text-white min-h-[120px] resize-none"
