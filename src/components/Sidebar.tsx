@@ -24,7 +24,7 @@ const NAV_DEFAULT = "text-muted-foreground hover:bg-secondary hover:text-foregro
 
 export function Sidebar({ selectedCategory, onSelectCategory, isMobileMenuOpen, setIsMobileMenuOpen, counts, dynamicListCounts, visibleLists, spaces, selectedSpaceId, onSelectSpace, onManageSpaces }: SidebarProps) {
     return (
-        <aside className={cn(
+        <aside id="main-navigation" aria-label="Main navigation" className={cn(
             "fixed inset-y-0 left-0 z-40 w-64 min-h-0 bg-secondary/50 dark:bg-[#18181A] border-r border-border flex flex-col transition-transform duration-300 md:relative md:translate-x-0",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}>

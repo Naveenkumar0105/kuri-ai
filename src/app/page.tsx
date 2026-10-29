@@ -12,7 +12,7 @@ import { DecompositionModal } from "@/components/DecompositionModal";
 import { SharedSpacesModal } from "@/components/SharedSpacesModal";
 import { ActivityPanel } from "@/components/ActivityPanel";
 import { Task, Category, SharedSpace, TaskActivity } from "@/types";
-import { ArrowUpDown, Bell, CircleDashed, UserCheck, Clock3 } from "lucide-react";
+import { ArrowUpDown, Bell, CircleDashed, UserCheck, Clock3, Menu } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function Home() {
@@ -665,21 +665,33 @@ export default function Home() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <main className="w-full max-w-[860px] mx-auto p-6 md:px-12 md:py-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
-              {activeSpace ? `${activeSpace.name} · ${selectedCategory}` : selectedCategory}
-              {sortByPriority && (
-                <span className="text-[11px] font-medium px-2 py-0.5 bg-[#5E5CE6]/10 text-[#5E5CE6] rounded-md">
-                  Priority
-                </span>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {selectedCategory === "All Tasks" || selectedCategory === "Completed" || selectedCategory === "Uncategorized" ? counts[selectedCategory] : dynamicListCounts[selectedCategory] || 0} task{(selectedCategory === "All Tasks" || selectedCategory === "Completed" || selectedCategory === "Uncategorized" ? counts[selectedCategory] : dynamicListCounts[selectedCategory]) !== 1 ? 's' : ''}
-            </p>
+        <div className="flex items-start justify-between gap-2 mb-6">
+          <div className="flex items-start gap-2 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5E5CE6]"
+              aria-label="Open navigation"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="main-navigation"
+            >
+              <Menu className="w-5 h-5" aria-hidden="true" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3 min-w-0">
+                <span className="truncate">{activeSpace ? `${activeSpace.name} · ${selectedCategory}` : selectedCategory}</span>
+                {sortByPriority && (
+                  <span className="text-[11px] font-medium px-2 py-0.5 bg-[#5E5CE6]/10 text-[#5E5CE6] rounded-md">
+                    Priority
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {selectedCategory === "All Tasks" || selectedCategory === "Completed" || selectedCategory === "Uncategorized" ? counts[selectedCategory] : dynamicListCounts[selectedCategory] || 0} task{(selectedCategory === "All Tasks" || selectedCategory === "Completed" || selectedCategory === "Uncategorized" ? counts[selectedCategory] : dynamicListCounts[selectedCategory]) !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {activeSpace && (
               <button
                 onClick={openActivity}
