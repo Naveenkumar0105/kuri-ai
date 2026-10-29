@@ -77,7 +77,7 @@ export default function Home() {
   const [pendingOriginalTask, setPendingOriginalTask] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [organizingTaskId, setOrganizingTaskId] = useState<string | null>(null);
-  const [suggestOrganizeTaskIds, setSuggestOrganizeTaskIds] = useState<Set<string>>(new Set());
+  const [categorizingTaskId, setCategorizingTaskId] = useState<string | null>(null);
   const [aiPreference, setAiPreference] = useState<string>("SPLIT_ONLY");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string, onUndo?: () => void } | null>(null);
@@ -205,8 +205,6 @@ export default function Home() {
         };
 
         setTasks((prev) => [optimisticTask, ...prev]);
-        const hasDateOrMulti = /\b(at|by|on|in|tomorrow|today|mon|tue|wed|thu|fri|sat|sun|\d{1,2}:\d{2}|\d{1,2}\s*[ap]m|and|then)\b/i.test(text);
-
         const res = await fetch("/api/tasks", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -221,9 +219,6 @@ export default function Home() {
         
         setTasks((prev) => prev.map(t => t.id === tempId ? savedTask : t));
 
-        if (hasDateOrMulti) {
-            setSuggestOrganizeTaskIds(prev => new Set(prev).add(savedTask.id));
-        }
         return true;
       }
 
@@ -298,74 +293,48 @@ export default function Home() {
     }
   };
 
-  const organizeTask = async (task: Task) => {
+  const categorizeTask = async (task: Task) => {
     try {
-        setError(null);
-        setIsProcessing(true);
-        const response = await fetch("/api/categorize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: task.text, userLocalTime: new Date().toString() }),
+      setError(null);
+      setCategorizingTaskId(task.id);
+      const response = await fetch("/api/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: task.text, userLocalTime: new Date().toString() }),
+      });
+      const data = await response.json();
+      const category = data.tasks?.[0]?.category;
+      if (!response.ok || typeof category !== "string" || !category.trim() || category.trim().toLowerCase() === "uncategorized") {
+        throw new Error("Invalid categorization response");
+      }
+
+      const normalizedCategory = category.trim();
+      const updateResponse = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: normalizedCategory }),
+      });
+      if (!updateResponse.ok) throw new Error("Failed to update task");
+
+      setTasks(prev => prev.map(item => item.id === task.id ? { ...item, category: normalizedCategory as Category } : item));
+      await registerCategory(normalizedCategory);
+      showToast(`Categorized as ${normalizedCategory}`, async () => {
+        const undoResponse = await fetch(`/api/tasks/${task.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: "Uncategorized" }),
         });
-
-        const data = await response.json();
-        
-        setSuggestOrganizeTaskIds(prev => {
-            const next = new Set(prev);
-            next.delete(task.id);
-            return next;
-        });
-
-        const tasksGenerated = data.tasks || [];
-        const hasDecomp = data.decomposition && data.decomposition.length > 0;
-        const firstTask = tasksGenerated[0] || { text: task.text, category: task.category };
-
-        const hasDate = !!firstTask.dueDate;
-        const isCategoryChanged = firstTask.category !== task.category;
-        const isMultiTask = tasksGenerated.length > 1;
-        const isMeaningful = hasDecomp || hasDate || isMultiTask || isCategoryChanged;
-
-        let shouldConfirm = false;
-        if (aiPreference === "ALWAYS" && isMeaningful) shouldConfirm = true;
-        if (aiPreference === "SPLIT_ONLY" && (hasDecomp || isMultiTask)) shouldConfirm = true;
-
-        if (shouldConfirm) {
-            setPendingSubtasks(hasDecomp ? data.decomposition : tasksGenerated);
-            setPendingOriginalTask(task.text);
-            setOrganizingTaskId(task.id);
-            setIsDecompositionModalOpen(true);
-        } else if (isMeaningful) {
-            // Apply instantly
-            const originalState = { ...task };
-            if (hasDecomp || isMultiTask) {
-                const listToUse = hasDecomp ? data.decomposition : tasksGenerated;
-                const parentCategory = listToUse.length > 0 ? listToUse[0].category : task.category;
-                await updateTask({ ...task, category: parentCategory as Category });
-                const subtasksSaved = await saveTasks(listToUse, task.id);
-                showToast(`Task split into ${listToUse.length} parts`, async () => {
-                    await updateTask(originalState);
-                    for (const s of subtasksSaved) {
-                        await fetch(`/api/tasks/${s.id}`, { method: "DELETE" });
-                    }
-                    setTasks(prev => prev.filter(t => t.parentId !== task.id));
-                });
-            } else {
-                const updated = { ...task, ...firstTask };
-                await updateTask(updated);
-                
-                let msg = "Changes applied";
-                if (hasDate) msg = `Date extracted`;
-                else if (isCategoryChanged) msg = `Categorized as ${firstTask.category}`;
-                
-                showToast(msg, async () => {
-                    await updateTask(originalState);
-                });
-            }
+        if (!undoResponse.ok) {
+          setError("Failed to organize task. Please try again.");
+          return;
         }
+        setTasks(prev => prev.map(item => item.id === task.id ? { ...item, category: "Uncategorized" } : item));
+      });
     } catch (err) {
-        setError("Failed to organize task. Please try again.");
+      console.error("Failed to categorize task", err);
+      setError("Failed to organize task. Please try again.");
     } finally {
-        setIsProcessing(false);
+      setCategorizingTaskId(null);
     }
   };
 
@@ -791,8 +760,8 @@ export default function Home() {
               setSelectedTask(task);
               setIsDetailsModalOpen(true);
             }}
-            suggestOrganizeTaskIds={suggestOrganizeTaskIds}
-            onOrganizeTask={organizeTask}
+            onCategorizeTask={categorizeTask}
+            categorizingTaskId={categorizingTaskId}
             selectedCategory={selectedCategory}
             currentUserId={session?.user?.id}
             onClaimTask={claimTask}

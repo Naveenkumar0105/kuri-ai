@@ -12,8 +12,8 @@ interface TaskListProps {
     onDeleteTask: (id: string) => void;
     onTaskClick: (task: Task) => void;
     selectedCategory: Category | "All Tasks";
-    suggestOrganizeTaskIds: Set<string>;
-    onOrganizeTask: (task: Task) => void;
+    onCategorizeTask: (task: Task) => void;
+    categorizingTaskId: string | null;
     currentUserId?: string;
     onClaimTask: (task: Task) => void;
 }
@@ -26,13 +26,13 @@ interface TaskItemProps {
     onToggleTask: (id: string) => void;
     onDeleteTask: (id: string) => void;
     onTaskClick: (task: Task) => void;
-    suggestOrganize?: boolean;
-    onOrganizeTask?: (task: Task) => void;
+    onCategorizeTask?: (task: Task) => void;
+    isCategorizing?: boolean;
     currentUserId?: string;
     onClaimTask?: (task: Task) => void;
 }
 
-const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, onToggleTask, onDeleteTask, onTaskClick, suggestOrganize, onOrganizeTask, currentUserId, onClaimTask }: TaskItemProps) => {
+const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, onToggleTask, onDeleteTask, onTaskClick, onCategorizeTask, isCategorizing, currentUserId, onClaimTask }: TaskItemProps) => {
     const subtasks = getSubtasks(task.id);
     const [isExpanded, setIsExpanded] = useState(true);
     const [visualCompleted, setVisualCompleted] = useState(task.completed);
@@ -219,18 +219,19 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                 </div>
             </div>
 
-            {/* Hover actions */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
-                {suggestOrganize && !task.completed && onOrganizeTask && (
+            <div className="flex items-center gap-0.5 pt-0.5">
+                {!isSubtask && !task.completed && (task.category || "").trim() === "Uncategorized" && onCategorizeTask && (
                     <button
-                        onClick={(e) => { e.stopPropagation(); onOrganizeTask(task); }}
-                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors"
-                        title="Organize with AI"
-                        aria-label="Organize with AI"
+                        onClick={(e) => { e.stopPropagation(); onCategorizeTask(task); }}
+                        disabled={isCategorizing}
+                        className="p-1.5 text-muted-foreground hover:text-[#5E5CE6] hover:bg-[#5E5CE6]/10 rounded-lg transition-colors disabled:opacity-50"
+                        title="Categorize with AI"
+                        aria-label="Categorize with AI"
                     >
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className={cn("w-4 h-4", isCategorizing && "animate-pulse")} />
                     </button>
                 )}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {task.completed && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onToggleTask(task.id); }}
@@ -249,6 +250,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>
+                </div>
             </div>
 
             </div>
@@ -275,7 +277,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
     );
 };
 
-export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory, suggestOrganizeTaskIds, onOrganizeTask, currentUserId, onClaimTask }: TaskListProps) {
+export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selectedCategory, onCategorizeTask, categorizingTaskId, currentUserId, onClaimTask }: TaskListProps) {
     const rootTasks = tasks.filter(t => !t.parentId || !tasks.some(p => p.id === t.parentId));
     const getSubtasks = (parentId: string) => tasks.filter(t => t.parentId === parentId);
 
@@ -353,8 +355,8 @@ export function TaskList({ tasks, onToggleTask, onDeleteTask, onTaskClick, selec
                                         onToggleTask={onToggleTask}
                                         onDeleteTask={onDeleteTask}
                                         onTaskClick={onTaskClick}
-                                        suggestOrganize={suggestOrganizeTaskIds.has(task.id)}
-                                        onOrganizeTask={onOrganizeTask}
+                                        onCategorizeTask={onCategorizeTask}
+                                        isCategorizing={categorizingTaskId === task.id}
                                         currentUserId={currentUserId}
                                         onClaimTask={onClaimTask}
                                     />
