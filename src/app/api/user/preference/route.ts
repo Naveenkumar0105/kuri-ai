@@ -23,6 +23,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const { preference } = await req.json();
+        if (!["SPLIT_ONLY", "ALWAYS", "NEVER"].includes(preference)) {
+            return NextResponse.json({ error: "Invalid preference" }, { status: 400 });
+        }
         const updated = await prisma.user.update({
             where: { email: session.user.email },
             data: { aiConfirmationPreference: preference }
