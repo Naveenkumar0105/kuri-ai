@@ -102,7 +102,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                     "flex-shrink-0 w-[44px] h-[44px] -m-3 flex items-center justify-center",
                     isTransitioning && "cursor-default"
                 )}
-                aria-label={visualCompleted ? "Mark as incomplete" : "Mark as complete"}
+                aria-label={`${visualCompleted ? "Mark as incomplete" : "Mark as complete"}: ${task.text}`}
             >
                 <div className={cn(
                     "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center transition-all duration-200",
