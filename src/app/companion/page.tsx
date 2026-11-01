@@ -101,7 +101,7 @@ export default function CompanionPage() {
         recorder.start();
     };
 
-    const askKuri = async (event?: FormEvent) => {
+    const askKuri = async (event?: FormEvent, destinationId = spaceId) => {
         event?.preventDefault();
         if (!input.trim() || stage === "saving") return;
         setError(""); setStage("saving");
@@ -110,7 +110,7 @@ export default function CompanionPage() {
             if (!response.ok) throw new Error("Kuri could not understand that task.");
             const data = await response.json();
             setSuggestions(Array.isArray(data.tasks) && data.tasks.length ? data.tasks as SuggestedTask[] : [{ text: input.trim(), category: "Uncategorized" }]);
-            setActiveIndex(0); setStage("review");
+            setActiveIndex(Math.max(0, destinations.findIndex((destination) => destination.id === destinationId))); setStage("review");
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "Kuri could not understand that task."); setStage("capture");
         }
@@ -138,7 +138,7 @@ export default function CompanionPage() {
         if (event.key === "Enter" && stage === "capture" && input.trim()) {
             event.preventDefault();
             if (activeIndex) setSpaceId(destinations[activeIndex - 1].id);
-            void askKuri();
+            void askKuri(undefined, activeIndex ? destinations[activeIndex - 1].id : spaceId);
         }
         if (event.key === "Enter" && stage === "review") { event.preventDefault(); void saveTasks(destinations[activeIndex].id); }
     };
@@ -166,7 +166,7 @@ export default function CompanionPage() {
                     <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[.14em] text-white/45">Task action</p>
                     <button type="submit" onMouseEnter={() => setActiveIndex(0)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${activeIndex === 0 ? "bg-[#7b78f1]/80" : "hover:bg-white/10"}`}><FilePlus2 className="h-5 w-5" /><span className="flex-1"><span className="block text-sm font-semibold">Add “{input.trim()}”</span><span className="text-xs text-white/60">Kuri will organize it before saving</span></span><span className="text-xs text-white/65">Return</span></button>
                     <p className="mt-3 border-t border-white/10 px-3 pt-3 text-[11px] font-semibold uppercase tracking-[.14em] text-white/45">Destination</p>
-                    {destinations.map((destination, index) => <button key={destination.id} type="button" onMouseEnter={() => chooseDestination(index)} onClick={() => { chooseDestination(index); void askKuri(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${activeIndex === index + 1 ? "bg-white/12" : "hover:bg-white/10"}`}><span className={`h-2 w-2 rounded-full ${spaceId === destination.id ? "bg-[#aaa8ff]" : "bg-white/20"}`} /><span className="flex-1 text-sm text-white/80">{destination.name}</span><ChevronRight className="h-4 w-4 text-white/35" /></button>)}
+                    {destinations.map((destination, index) => <button key={destination.id} type="button" onMouseEnter={() => chooseDestination(index)} onClick={() => { chooseDestination(index); void askKuri(undefined, destination.id); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${activeIndex === index + 1 ? "bg-white/12" : "hover:bg-white/10"}`}><span className={`h-2 w-2 rounded-full ${spaceId === destination.id ? "bg-[#aaa8ff]" : "bg-white/20"}`} /><span className="flex-1 text-sm text-white/80">{destination.name}</span><ChevronRight className="h-4 w-4 text-white/35" /></button>)}
                 </div> : null}
                 {error && <p className="border-t border-white/10 px-5 py-3 text-xs text-rose-300">{error}</p>}
             </section>
