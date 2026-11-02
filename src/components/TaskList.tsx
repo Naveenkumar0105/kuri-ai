@@ -231,7 +231,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                         <Sparkles className={cn("w-4 h-4", isCategorizing && "animate-pulse")} />
                     </button>
                 )}
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-0.5">
                 {task.completed && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onToggleTask(task.id); }}
