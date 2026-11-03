@@ -86,8 +86,8 @@ export function TaskInput({ onAddTask, isProcessing }: TaskInputProps) {
                                     isListening && "text-red-500 animate-pulse bg-red-50 dark:bg-red-900/20"
                                 )}
                                 disabled={isProcessing}
-                                title="Voice Input"
-                                aria-label="Voice Input"
+                                title={isListening ? "Stop voice input" : "Start voice input"}
+                                aria-label={isListening ? "Stop voice input" : "Start voice input"}
                             >
                                 <Mic className="w-4 h-4" />
                             </button>
