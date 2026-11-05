@@ -7,7 +7,10 @@ export async function POST(req: Request) {
   let text = "";
   try {
     const body = await req.json();
-    text = body.text;
+    text = body?.text;
+    if (typeof text !== "string" || !text.trim() || text.length > 2000) {
+      return NextResponse.json({ error: "Task text must be 1–2000 characters" }, { status: 400 });
+    }
     const { userLocalTime } = body;
 
     const localDate = userLocalTime ? new Date(userLocalTime) : new Date();
