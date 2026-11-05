@@ -229,6 +229,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, userLocalTime: new Date().toString() }),
       });
+      if (!response.ok) throw new Error("Failed to categorize task");
 
       const data = await response.json();
 
