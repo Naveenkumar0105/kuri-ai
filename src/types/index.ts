@@ -24,7 +24,6 @@ export interface Task {
 export interface TaskPerson {
     id: string;
     name?: string | null;
-    email?: string | null;
 }
 
 export interface SharedSpace {
