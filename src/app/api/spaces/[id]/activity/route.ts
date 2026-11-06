@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             where: { sharedSpaceId },
             orderBy: { createdAt: "desc" },
             take: 50,
-            include: { actor: { select: { id: true, name: true, email: true } } },
+            include: { actor: { select: { id: true, name: true } } },
         }),
         prisma.taskActivity.count({
             where: {

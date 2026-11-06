@@ -203,7 +203,7 @@ const TaskItem = ({ task, isSubtask = false, showCategory = false, getSubtasks, 
                             {task.claimedById && task.claimedById !== currentUserId ? (
                                 <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
                                     <UserCheck className="w-3 h-3" />
-                                    {task.claimedBy?.name?.split(" ")[0] || task.claimedBy?.email?.split("@")[0] || "Someone"} has this
+                                    {task.claimedBy?.name?.split(" ")[0] || "Someone"} has this
                                 </span>
                             ) : (
                                 <button

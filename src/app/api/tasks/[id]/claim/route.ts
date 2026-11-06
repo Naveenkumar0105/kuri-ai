@@ -4,8 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const includePeople = {
-    user: { select: { id: true, name: true, email: true } },
-    claimedBy: { select: { id: true, name: true, email: true } },
+    user: { select: { id: true, name: true } },
+    claimedBy: { select: { id: true, name: true } },
 } as const;
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {

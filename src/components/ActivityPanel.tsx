@@ -35,7 +35,7 @@ const actionText = {
 };
 
 function personName(activity: TaskActivity) {
-    return activity.actor?.name?.split(" ")[0] || activity.actor?.email?.split("@")[0] || "A member";
+    return activity.actor?.name?.split(" ")[0] || "A member";
 }
 
 function relativeTime(value: string) {

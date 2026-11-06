@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const taskPeople = {
-    user: { select: { id: true, name: true, email: true } },
-    claimedBy: { select: { id: true, name: true, email: true } },
+    user: { select: { id: true, name: true } },
+    claimedBy: { select: { id: true, name: true } },
 } as const;
 
 async function accessibleTask(id: string, userId: string) {
