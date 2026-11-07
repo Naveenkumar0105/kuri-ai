@@ -13,6 +13,13 @@ export async function POST(req: Request) {
             );
         }
 
+        if (typeof password !== "string" || bcrypt.truncates(password)) {
+            return NextResponse.json(
+                { error: "Password must be at most 72 UTF-8 bytes" },
+                { status: 400 }
+            );
+        }
+
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
