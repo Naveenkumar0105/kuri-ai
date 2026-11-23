@@ -25,11 +25,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (task.completed) return NextResponse.json({ error: "Completed tasks cannot be claimed" }, { status: 409 });
 
     if (task.claimedById === session.user.id) {
-        const released = await prisma.task.update({
-            where: { id },
+        const result = await prisma.task.updateMany({
+            where: { id, claimedById: session.user.id, completed: false },
             data: { claimedById: null, claimedAt: null },
-            include: includePeople,
         });
+        if (result.count === 0) {
+            return NextResponse.json({ error: "Task claim changed" }, { status: 409 });
+        }
+
+        const released = await prisma.task.findUnique({ where: { id }, include: includePeople });
         await prisma.taskActivity.create({
             data: {
                 type: "TASK_RELEASED",
